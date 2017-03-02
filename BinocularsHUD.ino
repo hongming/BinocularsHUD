@@ -1,5 +1,5 @@
 /**
-  float精度不够，可考虑arduino due
+d  float精度不够，可考虑arduino due
   计算公式来源：
   1，http://www.fjptsz.com/xxjs/xjw/rj/117/12.htm
   地平坐标转到赤道坐标
@@ -22,25 +22,20 @@ TX <---> 0(Rx)
 #include <Wire.h>
 #include <JY901.h>  //JY901姿态板
 #include "Math.h"
-//RTC时间库文件
-#include <Time.h>
-#include "RTClib.h"
-
 //定义变量
 //观测者所在纬度
-double Latitude;
-
 //观测者所在经度
 double Longitude;
+double Latitude;
 
-//天体方位角Azimuth，N->W
-float A;
+//天体方位角Azimuth，N->W,A
+float Azimuth;
 
-//天体地平纬度Altitude
-float h;
+//天体地平纬度Altitude，h
+float Altitude;
 
 //本地时角，N->W
-float H;
+float Local_Hour_A;
 
 //望远镜指向的赤纬
 float Astro_HUD_RA;
@@ -60,76 +55,57 @@ double Siderial_Time;
 //本地恒星时 LST
 double Siderial_Time_Local;
 
-//RTC
-RTC_DS1307 rtc;
-char daysOfTheWeek[7][12] = {"Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"};
 
 void setup() {
   //启动串口
   Serial.begin(9600);
   Serial1.begin(9600);
-  if (! rtc.begin()) {
-    Serial.println("Couldn't find RTC");
-    while (1);
-  }
-  if (! rtc.isrunning()) {
-    Serial.println("RTC is NOT running!");
-    // following line sets the RTC to the date & time this sketch was compiled
-    // rtc.adjust(DateTime(F(__DATE__), F(__TIME__)));
-    // This line sets the RTC with an explicit date & time, for example to set
-    // January 21, 2014 at 3am you would call:
-    // rtc.adjust(DateTime(2014, 1, 21, 3, 0, 0));
-  }
   Serial.println("Caculating.........");
   //提供观测者基础数据
   //观测者所在纬度
-  Latitude = 31.05;
+  Latitude = 36.10;
   //观测者所在经度
-  Longitude = 121.4;
+  Longitude = 120.34;
 
 }
 void loop() {
-  //      //从RTC获取当前实时时间
-    DateTime now = rtc.now();
-     Serial.print(now.year(), DEC);
-    Serial.print('/');
-    Serial.print(now.month(), DEC);
-    Serial.print('/');
-    Serial.print(now.day(), DEC);
-    Serial.print(" (");
-    Serial.print(daysOfTheWeek[now.dayOfTheWeek()]);
-    Serial.print(") ");
-    Serial.print(now.hour(), DEC);
-    Serial.print(':');
-    Serial.print(now.minute(), DEC);
-    Serial.print(':');
-    Serial.print(now.second(), DEC);
-    Serial.println();
-  
-
+ 
 
   //以下获得JY901实时方位角和地平维度基础数据
 
 
  //获得JY901角度数据
- Serial.print("Angle:");
- Serial.print((float)JY901.stcAngle.Angle[0]/32768*180);
- Serial.print(" ");
- Serial.print((float)JY901.stcAngle.Angle[1]/32768*180);
- Serial.print(" ");
- Serial.println((float)JY901.stcAngle.Angle[2]/32768*180);
-   delay(500);
-
+//Serial.print("Angle:"); 
+//  Serial.print(-1*(float)JY901.stcAngle.Angle[0] / 32768 * 180); 
+//  float az=(float)JY901.stcAngle.Angle[2] / 32768 * 180;
+//  if (az<=0)
+//    {az=-1*az;}
+//  else
+//    {az=360-az;}
+//  Serial.print(" "); Serial.println(az);
 
   //JY901数据（ROLL,PITCH,YAW）与A方位角/地平纬度的关系变换
-float jy_yaw=JY901.stcAngle.Angle[0]/32768*180;
-float jy_pitch=JY901.stcAngle.Angle[1]/32768*180;
 
+float jy_pitch=(float)JY901.stcAngle.Angle[0]/32768*180;
+
+float jy_yaw=(float)JY901.stcAngle.Angle[2] / 32768 * 180;
+ if (jy_yaw<=0)
+    {jy_yaw=-1*jy_yaw;}
+  else
+    {jy_yaw=360-jy_yaw;}
+
+
+Serial.print("Azimuth");
+Serial.print(jy_yaw);
+Serial.print("         ");
+Serial.print("Altitude");
+Serial.print(jy_pitch);
+Serial.print("         ");
   //测试用方位角（弧度），获取和计算,假设为0
-  A = jy_yaw*2 * PI / 360;
+  Azimuth = jy_yaw*2 * PI / 360;
 
   //测试用地平纬度（弧度），获取和计算，假设为65度
-  h = jy_pitch* 2 * PI / 360;
+  Altitude = jy_pitch* 2 * PI / 360;
 
   //以下获得实时时间
   /*
@@ -137,14 +113,14 @@ float jy_pitch=JY901.stcAngle.Angle[1]/32768*180;
   */
 
   //测试用时间
-  Year = now.year();
-  Month = now.month();
-  Day = now.day();
-  Hour = now.hour();
+  Year = 2017;
+  Month = 2;
+  Day = 25;
+  Hour = 20;
   Hour = Hour - 8;
   // Serial.println(Hour);
-  Minute = now.minute();
-  Second = now.second();
+  Minute = 0;
+  Second = 0;
 
   //儒略日，计算采用Navy.mil的计算试试看
   JD = 367 * Year - int((7 * (Year + int((Month + 9) / 12))) / 4) + int((275 * Month) / 9) + Day + 1721013.5 + Hour / 24 + Minute / 1440 + Second / 86400 - 0.5 * ((((100 * Year + Month - 190002.5) > 0) - ((100 * Year + Month - 190002.5) < 0))) + 0.5;
@@ -178,9 +154,9 @@ float jy_pitch=JY901.stcAngle.Angle[1]/32768*180;
   Serial.print(Siderial_Time_Local, 6);
   Serial.print("  ");
   //计算赤经
-  Astro_HUD_RA = Siderial_Time_Local-atan(sin(A) / ( cos(A) * sin(Latitude*(2*PI/360)) + tan(h) * cos(Latitude*(2*PI/360)) ))*180/(PI*15) ;
+  Astro_HUD_RA = Siderial_Time_Local-atan(sin(Azimuth) / ( cos(Azimuth) * sin(Latitude*(2*PI/360)) + tan(Altitude) * cos(Latitude*(2*PI/360)) ))*180/(PI*15) ;
   //计算赤纬δ = 赤纬。天赤道以北为正，以南为负。
-  Astro_HUD_DEC = asin(sin(Latitude*2*PI/360) * sin(h) + cos(Latitude*(2*PI/360)) * cos(h) * cos(A))*360/(2*PI);
+  Astro_HUD_DEC = asin(sin(Latitude*2*PI/360) * sin(Altitude) + cos(Latitude*(2*PI/360)) * cos(Altitude) * cos(Azimuth))*360/(2*PI);
   // Siderial_Time_Local * 15 -
   //* 360 / (2 * PI) ;
   Serial.print("RA:");
@@ -188,25 +164,10 @@ float jy_pitch=JY901.stcAngle.Angle[1]/32768*180;
   Serial.print("  ");
   Serial.print("Dec:");
   Serial.println(Astro_HUD_DEC);
-  delay(500);
+  delay(2000);
     while (Serial1.available()) 
   {
     JY901.CopeSerialData(Serial1.read()); //Call JY901 data cope function
   }
   
 }
-
-//    void serialEvent() {
-//
-//
-//      while (Serial.available()) {
-//        Re_buf[counter] = (unsigned char)Serial.read();
-//        if (counter == 0 && Re_buf[0] != 0x5A) return; // 检查帧头
-//        counter++;
-//        if (counter == 20)             //接收到数据
-//        {
-//          counter = 0;               //重新赋值，准备下一帧数据的接收
-//          sign = 1;
-//        }
-//      }
-//    }
