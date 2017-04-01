@@ -18,7 +18,19 @@ http://item.taobao.com/item.htm?id=43511899945
 Test on mega2560.
 JY901   mega2560
 TX <---> 0(Rx)
+屏幕：https://github.com/olikraus/u8g2
 */
+//U8G2显示屏幕
+#include <Arduino.h>
+#include <U8g2lib.h>
+#ifdef U8X8_HAVE_HW_SPI
+#include <SPI.h>
+#endif
+#ifdef U8X8_HAVE_HW_I2C
+#include <Wire.h>
+#endif
+U8G2_SSD1306_128X64_NONAME_1_4W_SW_SPI u8g2(U8G2_R0, /* clock=*/ 13, /* data=*/ 11, /* cs=*/ 10, /* dc=*/ 9, /* reset=*/ 8);
+
 #include <Wire.h>
 #include <JY901.h>  //JY901姿态板
 #include "Math.h"
@@ -55,8 +67,12 @@ double Siderial_Time;
 //本地恒星时 LST
 double Siderial_Time_Local;
 
-
+//滤波
+float Filter_Value_Pitch;
+float Filter_Value_Yaw;
 void setup() {
+  //启动图形库
+    u8g2.begin();
   //启动串口
   Serial.begin(9600);
   Serial1.begin(9600);
@@ -66,20 +82,15 @@ void setup() {
   Latitude = 31.0456;
   //观测者所在经度
   Longitude = 121.3997;
-
+randomSeed(analogRead(0)); 
 }
-void loop() {
+void loop(void) {
 
 
   //以下获得JY901实时方位角和地平维度基础数据,JY901数据（ROLL,PITCH,YAW）与A方位角/地平纬度的关系变换
 
 float jy_pitch=(float)JY901.stcAngle.Angle[0]/32768*180;
-
 float jy_yaw=(float)JY901.stcAngle.Angle[2] / 32768 * 180;
-// if (jy_yaw<=0)
-//    {jy_yaw=-1*jy_yaw;}
-//  else
-//    {jy_yaw=360-jy_yaw;}
 
 Serial.print("Azimuth");
 Serial.print(jy_yaw);
@@ -88,12 +99,12 @@ Serial.print("Altitude");
 Serial.print(jy_pitch);
 Serial.print("         ");
   //测试用方位角（弧度），获取和计算,假设为0
-//  Azimuth = jy_yaw*2 * PI / 360;
-  Azimuth=218.061611*2 * PI / 360;
+  Azimuth = jy_yaw*2 * PI / 360;
+//  Azimuth=218.061611*2 * PI / 360;
 
   //测试用地平纬度（弧度），获取和计算，假设为65度
-//  Altitude = jy_pitch* 2 * PI / 360;
-  Altitude=66.642722* 2 * PI / 360;
+  Altitude = jy_pitch* 2 * PI / 360;
+//  Altitude=66.642722* 2 * PI / 360;
   //以下获得实时时间
   /*
     RTC获取数据
@@ -102,33 +113,13 @@ Serial.print("         ");
   //测试用时间
   Year = 2017;
   Month = 3;
-  Day = 17;
+  Day = 23;
   Hour = 23;
   Hour = Hour - 8;
   // Serial.println(Hour);
   Minute = 20;
   Second = 0;
 
-  //儒略日，计算采用Navy.mil的计算试试看
-  JD = 367 * Year - int((7 * (Year + int((Month + 9) / 12))) / 4) + int((275 * Month) / 9) + Day + 1721013.5 + Hour / 24 + Minute / 1440 + Second / 86400 - 0.5 * ((((100 * Year + Month - 190002.5) > 0) - ((100 * Year + Month - 190002.5) < 0))) + 0.5;
-//  Serial.print("JD is   ");
-//  Serial.print(JD, 6);
-  //简化儒略日，计算
-  MJD = JD - 2400000.5;
-//  Serial.print("     MJD is   ");
-//  Serial.println(MJD, 6);
-  //格林尼治恒星时
-  //    Siderial_Time = 6.697374558 + 0.06570982441908 * (JD - Hour / 24 - 2451545.0) + 1.00273790935 * Hour + 0.000026 * (JD - 2451545.0) * (JD - 2451545.0) / (36525 * 36525);
-  //http://aa.usno.navy.mil/faq/docs/GAST.php
-  Siderial_Time = 18.697374558 + 24.06570982441908 * (JD - 2451545.0);
-  while (Siderial_Time < 0.0)
-    Siderial_Time += 24.0;
-  while (Siderial_Time > 24.0)
-    Siderial_Time -= 24.0;
-//  Serial.print("GST is: ");
-//  Serial.print("  ");
-//  Serial.print(Siderial_Time, 6);
-//  Serial.print("  ");
   //本地恒星时
    Siderial_Time_Local = Siderial_Time + Longitude/15;
 //Siderial_Time_Local = Siderial_Time + 8.0;
@@ -159,10 +150,27 @@ Serial.print("         ");
   Serial.print("°");
   Serial.print(round((Astro_HUD_DEC-floor(Astro_HUD_DEC))*60));  
    Serial.println("'");
-  delay(500);
+  delay(100);
+  //在屏幕上显示
+  u8g2.setFont(u8g2_font_ncenB10_tr);
+  u8g2.firstPage();
+  do {
+    u8g2.setCursor(5, 10);
+    u8g2.print(jy_yaw);
+    u8g2.setCursor(60, 10);
+    u8g2.print(jy_pitch);
+    u8g2.setCursor(5, 40);
+    u8g2.print(F("RA: "));
+    u8g2.setCursor(60, 40);
+    u8g2.print(Astro_HUD_RA);   
+    u8g2.setCursor(5, 60);
+    u8g2.print(F("DEC: "));
+    u8g2.setCursor(60, 60);
+    u8g2.print(Astro_HUD_DEC);   
+  } while ( u8g2.nextPage() );
+  
     while (Serial1.available())
   {
     JY901.CopeSerialData(Serial1.read()); //Call JY901 data cope function
   }
-
 }
