@@ -23,6 +23,13 @@
 /*
 数据计算来自：磁偏角 https://www.ngdc.noaa.gov/geomag-web/#declination
 */
+/* Example sketch for interfacing with the DS1302 timekeeping chip.
+
+ Copyright (c) 2009, Matt Sparks
+ All rights reserved.
+
+ https://github.com/msparks/arduino-ds1302
+*/
 
 //U8G2显示屏幕
 #include <Arduino.h>
@@ -33,12 +40,17 @@
 #ifdef U8X8_HAVE_HW_I2C
 #include <Wire.h>
 #endif
-U8G2_SSD1306_128X64_NONAME_1_4W_SW_SPI u8g2(U8G2_R0, /* clock=*/ 13, /* data=*/ 11, /* cs=*/ 10, /* dc=*/ 9, /* reset=*/ 8);
+U8G2_SSD1306_128X64_NONAME_1_4W_SW_SPI u8g2(U8G2_R1, /* clock=*/ 13, /* data=*/ 11, /* cs=*/ 10, /* dc=*/ 9, /* reset=*/ 8);
 
 //引入库
 #include <Wire.h>
 #include <JY901.h>  //JY901姿态板
 #include "Math.h"
+
+//引入RTC库
+#include <stdio.h>
+#include <DS1302.h>
+
 //定义变量
 //观测者所在纬度
 //观测者所在经度
@@ -73,6 +85,23 @@ double Siderial_Time;
 //本地恒星时 LST
 double Siderial_Time_Local;
 
+//RTC时间相关
+namespace {
+
+// Set the appropriate digital I/O pin connections. These are the pin
+// assignments for the Arduino as well for as the DS1302 chip. See the DS1302
+// datasheet:
+//
+//   http://datasheets.maximintegrated.com/en/ds/DS1302.pdf
+const int kCePin   = 5;  // Chip Enable
+const int kIoPin   = 6;  // Input/Output
+const int kSclkPin = 7;  // Serial Clock
+
+// Create a DS1302 object.
+DS1302 rtc(kCePin, kIoPin, kSclkPin);
+
+}
+//屏幕显示偏转270度，https://github.com/olikraus/u8g2/wiki/u8g2reference#setdisplayrotation
 
 void setup() {
   //启动图形库
@@ -88,7 +117,19 @@ void setup() {
   Longitude = 121.3997;
   //观测者所在位置的磁偏角
   Magnetic_Delination=11.98;
+  //启动RTC、设置时间
+    // Initialize a new chip by turning off write protection and clearing the
+  // clock halt flag. These methods needn't always be called. See the DS1302
+  // datasheet for details.
+  rtc.writeProtect(false);
+  rtc.halt(false);
 
+  // Make a new time object to set the date and time.
+  // Sunday, September 22, 2013 at 01:38:50.
+  //Time t(2017, 4, 26, 23, 02, 49, Time::kSunday);
+
+  // Set the time and date on the chip.
+    //rtc.time(t);
 }
 void loop() {
 
@@ -96,7 +137,7 @@ void loop() {
   //以下获得JY901实时方位角和地平维度基础数据,JY901数据（ROLL,PITCH,YAW）与A方位角/地平纬度的关系变换
 
   float jy_yaw = 180.0-Magnetic_Delination-(float)JY901.stcAngle.Angle[2] / 32768 * 180; 
-  float jy_pitch = -1*(float)JY901.stcAngle.Angle[1] / 32768 * 180;
+  float jy_pitch = (float)JY901.stcAngle.Angle[0] / 32768 * 180;
   // if (jy_yaw<=0)
   //    {jy_yaw=-1*jy_yaw;}
   //  else
@@ -115,19 +156,19 @@ void loop() {
   Altitude = jy_pitch* 2 * PI / 360;
 
   //以下获得实时时间
-  /*
-    RTC获取数据
-  */
+ 
+  Time t = rtc.time();
+
 
   //测试用时间
-  Year = 2017;
-  Month = 4;
-  Day = 23;
-  Hour = 22;
+  Year = t.yr;
+  Month = t.mon;
+  Day = t.date;
+  Hour = t.hr;
   Hour = Hour - 8;
   // Serial.println(Hour);
-  Minute = 33;
-  Second = 0;
+  Minute = t.min;
+  Second = t.sec;
 
   //儒略日，计算采用Navy.mil的计算试试看
   JD = 367 * Year - int((7 * (Year + int((Month + 9) / 12))) / 4) + int((275 * Month) / 9) + Day + 1721013.5 + Hour / 24 + Minute / 1440 + Second / 86400 - 0.5 * ((((100 * Year + Month - 190002.5) > 0) - ((100 * Year + Month - 190002.5) < 0))) + 0.5;
@@ -178,24 +219,53 @@ void loop() {
   Serial.print(int(floor(Astro_HUD_DEC)));
   Serial.print("°");
   Serial.print(round((Astro_HUD_DEC - floor(Astro_HUD_DEC)) * 60));
-  Serial.println("'");
+  Serial.print("'");
+  Serial.print(t.yr);
+  Serial.print("_");
+  Serial.print(t.mon);
+  Serial.print("_");
+  Serial.print(t.date);
+  Serial.print("_");
+  Serial.print(t.hr);
+  Serial.print("_");
+  Serial.print(t.min);
+  Serial.print("_");
+  Serial.println(t.sec);
 
   //在屏幕上显示
-  u8g2.setFont(u8g2_font_ncenB10_tr);
+  u8g2.setFont(u8g2_font_ncenB08_tf);
   u8g2.firstPage();
   do {
-    u8g2.setCursor(5, 10);
+    u8g2.setCursor(1, 10);
     u8g2.print(jy_yaw);
-    u8g2.setCursor(60, 10);
+    u8g2.setCursor(40, 10);
     u8g2.print(jy_pitch);
-    u8g2.setCursor(5, 40);
+    u8g2.setCursor(1, 40);
     u8g2.print(F("RA: "));
-    u8g2.setCursor(60, 40);
+    u8g2.setCursor(30, 40);
     u8g2.print(Astro_HUD_RA);
-    u8g2.setCursor(5, 60);
+    u8g2.setCursor(1, 60);
     u8g2.print(F("DEC: "));
-    u8g2.setCursor(60, 60);
+    u8g2.setCursor(30, 60);
     u8g2.print(Astro_HUD_DEC);
+    u8g2.setCursor(1, 100);
+    u8g2.print(F("D: "));
+    u8g2.setCursor(30, 100);
+    u8g2.print(t.mon);
+    u8g2.setCursor(38, 100);
+    u8g2.print("--");
+    u8g2.setCursor(44, 100);
+    u8g2.print(t.date);
+    u8g2.setCursor(1, 120);
+    u8g2.print(t.hr);
+    u8g2.setCursor(11, 120);
+    u8g2.print(" : ");
+    u8g2.setCursor(20, 120);
+    u8g2.print(t.min);
+    u8g2.setCursor(28, 120);
+    u8g2.print(" : ");
+    u8g2.setCursor(40, 120);
+    u8g2.print(t.sec);
   } while ( u8g2.nextPage() );
 
   delay(100);
