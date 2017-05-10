@@ -40,7 +40,7 @@
 #ifdef U8X8_HAVE_HW_I2C
 #include <Wire.h>
 #endif
-U8G2_SSD1306_128X64_NONAME_1_4W_SW_SPI u8g2(U8G2_R1, /* clock=*/ 13, /* data=*/ 11, /* cs=*/ 10, /* dc=*/ 9, /* reset=*/ 8);
+U8G2_SSD1306_128X64_NONAME_1_4W_SW_SPI u8g2(U8G2_R2, /* clock=*/ 13, /* data=*/ 11, /* cs=*/ 10, /* dc=*/ 9, /* reset=*/ 8);
 
 //引入库
 #include <Wire.h>
@@ -116,7 +116,8 @@ void setup() {
   //观测者所在经度
   Longitude = 121.3997;
   //观测者所在位置的磁偏角
-  Magnetic_Delination=11.98;
+//  Magnetic_Delination=-5.9;
+  Magnetic_Delination=0;
   //启动RTC、设置时间
     // Initialize a new chip by turning off write protection and clearing the
   // clock halt flag. These methods needn't always be called. See the DS1302
@@ -126,7 +127,7 @@ void setup() {
 
   // Make a new time object to set the date and time.
   // Sunday, September 22, 2013 at 01:38:50.
-  //Time t(2017, 4, 26, 23, 02, 49, Time::kSunday);
+  //Time t(2017, 4, 30, 22, 07, 50, Time::kSunday);
 
   // Set the time and date on the chip.
     //rtc.time(t);
