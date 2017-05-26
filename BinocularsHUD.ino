@@ -12,6 +12,7 @@
   6，RTC库文件，使用https://github.com/adafruit/RTClib
   使用JY901库文件
   尝试使用tinygps++获取位置和时间
+  计划加入磁力计校正
 **/
 /*
   http://item.taobao.com/item.htm?id=43511899945
@@ -116,8 +117,8 @@ void setup() {
   //观测者所在经度
   Longitude = 121.3997;
   //观测者所在位置的磁偏角
-//  Magnetic_Delination=-5.9;
-  Magnetic_Delination=0;
+  Magnetic_Delination=5.9;
+// Magnetic_Delination=0;
   //启动RTC、设置时间
     // Initialize a new chip by turning off write protection and clearing the
   // clock halt flag. These methods needn't always be called. See the DS1302
@@ -127,10 +128,10 @@ void setup() {
 
   // Make a new time object to set the date and time.
   // Sunday, September 22, 2013 at 01:38:50.
-  //Time t(2017, 4, 30, 22, 07, 50, Time::kSunday);
+ // Time t(2017, 5, 17, 23, 21, 50, Time::kSunday);
 
   // Set the time and date on the chip.
-    //rtc.time(t);
+   // rtc.time(t);
 }
 void loop() {
 
@@ -138,7 +139,7 @@ void loop() {
   //以下获得JY901实时方位角和地平维度基础数据,JY901数据（ROLL,PITCH,YAW）与A方位角/地平纬度的关系变换
 
   float jy_yaw = 180.0-Magnetic_Delination-(float)JY901.stcAngle.Angle[2] / 32768 * 180; 
-  float jy_pitch = (float)JY901.stcAngle.Angle[0] / 32768 * 180;
+  float jy_pitch = -1*(float)JY901.stcAngle.Angle[0] / 32768 * 180;
   // if (jy_yaw<=0)
   //    {jy_yaw=-1*jy_yaw;}
   //  else
