@@ -52,6 +52,8 @@ U8G2_SSD1306_128X64_NONAME_1_4W_SW_SPI u8g2(U8G2_R2, /* clock=*/ 13, /* data=*/ 
 #include <stdio.h>
 #include <DS1302.h>
 
+
+
 //定义变量
 //观测者所在纬度
 //观测者所在经度
@@ -125,13 +127,14 @@ void setup() {
   // datasheet for details.
   rtc.writeProtect(false);
   rtc.halt(false);
-
+  
   // Make a new time object to set the date and time.
   // Sunday, September 22, 2013 at 01:38:50.
- // Time t(2017, 5, 17, 23, 21, 50, Time::kSunday);
+  //  Time t(2017, 6, 12, 1, 22,35, Time::kSunday);
+
 
   // Set the time and date on the chip.
-   // rtc.time(t);
+  //  rtc.time(t);
 }
 void loop() {
 
@@ -216,59 +219,98 @@ void loop() {
   Serial.print(int(floor(Astro_HUD_RA)));
   Serial.print("h");
   Serial.print(round((Astro_HUD_RA - floor(Astro_HUD_RA)) * 60));
-  Serial.print("m");
+  Serial.print("m -module ");
+//用取模的方式计算RA-开始
+  Serial.print(floor(Astro_HUD_RA));
+  Serial.print(" h ");
+  Serial.print(int(fmod(Astro_HUD_RA,1)*60));
+  Serial.print(" m  ");
+//用取模的方式计算RA-结束
   Serial.print(" Dec:");
   Serial.print(int(floor(Astro_HUD_DEC)));
   Serial.print("°");
-  Serial.print(round((Astro_HUD_DEC - floor(Astro_HUD_DEC)) * 60));
-  Serial.print("'");
-  Serial.print(t.yr);
-  Serial.print("_");
-  Serial.print(t.mon);
-  Serial.print("_");
-  Serial.print(t.date);
-  Serial.print("_");
-  Serial.print(t.hr);
-  Serial.print("_");
-  Serial.print(t.min);
-  Serial.print("_");
-  Serial.println(t.sec);
+  Serial.print(round((Astro_HUD_DEC - int(Astro_HUD_DEC)) * 60));
+  Serial.print("' module ");
+//用取模的方式计算DEC-开始
+  Serial.print(int(floor(Astro_HUD_DEC)));
+  Serial.print(" h ");
+  Serial.print(round(60*abs(Astro_HUD_DEC-int(Astro_HUD_DEC))));
+  Serial.println(" m  ");
+//用取模的方式计算DEC-结束
 
   //在屏幕上显示
-  u8g2.setFont(u8g2_font_ncenB08_tf);
+
   u8g2.firstPage();
   do {
-    u8g2.setCursor(1, 10);
+
+
+    //打印RA/DEC
+    u8g2.setCursor(1, 15);
+    u8g2.setFont(u8g2_font_profont12_tf);
+    u8g2.print(F("R"));
+    u8g2.setCursor(10, 15);
+    u8g2.setFont(u8g2_font_helvB12_tf);
+    u8g2.print(int(floor(Astro_HUD_RA)));
+    u8g2.setCursor(30, 15);
+    u8g2.setFont(u8g2_font_profont12_tf);
+    u8g2.print(F("h"));
+    u8g2.setCursor(37, 15);
+    u8g2.print(int(fmod(Astro_HUD_RA,1)*60));
+    u8g2.setCursor(50, 15);
+    u8g2.print(F("m"));  
+  
+    u8g2.setCursor(69, 15);
+    u8g2.setFont(u8g2_font_profont12_tf);
+    u8g2.print(F("D"));
+    u8g2.setCursor(77, 15);
+    u8g2.setFont(u8g2_font_helvB12_tf);
+    u8g2.print(int(floor(Astro_HUD_DEC)));
+    u8g2.setCursor(99, 15);
+    u8g2.setFont(u8g2_font_unifont_t_symbols);
+    u8g2.drawGlyph(99, 15, 0x00b0);
+    u8g2.setCursor(106, 15);
+    u8g2.print(round(60*abs(Astro_HUD_DEC-int(Astro_HUD_DEC))));
+    u8g2.setCursor(125, 15);
+    u8g2.setFont(u8g2_font_helvB12_tf);
+    u8g2.print(F("'"));  
+
+  //打印地平圈和方位角
+  u8g2.drawCircle(10,40,10,U8G2_DRAW_ALL);
+  u8g2.drawLine(10,40,10-10*sin(Azimuth),40+10*cos(Azimuth));
+    u8g2.setFont(u8g2_font_profont12_tf);
+
+    u8g2.setCursor(30, 50);
     u8g2.print(jy_yaw);
-    u8g2.setCursor(40, 10);
+
+
+
+//打印高度角
+  u8g2.drawCircle(69,50,20,U8G2_DRAW_UPPER_RIGHT);
+  u8g2.drawLine(69,50,89,50);
+  u8g2.drawLine(69,50,69,30);
+  u8g2.drawLine(69,50,69+20*cos(Altitude),50-20*sin(Altitude));
+    u8g2.setFont(u8g2_font_profont12_tf);
+
+    u8g2.setCursor(95, 50);
     u8g2.print(jy_pitch);
-    u8g2.setCursor(1, 40);
-    u8g2.print(F("RA: "));
-    u8g2.setCursor(30, 40);
-    u8g2.print(Astro_HUD_RA);
-    u8g2.setCursor(1, 60);
-    u8g2.print(F("DEC: "));
-    u8g2.setCursor(30, 60);
-    u8g2.print(Astro_HUD_DEC);
-    u8g2.setCursor(1, 100);
-    u8g2.print(F("D: "));
-    u8g2.setCursor(30, 100);
+
+    //打印时间
+    u8g2.setFont(u8g2_font_profont12_tf);
+    u8g2.setCursor(21, 63);
     u8g2.print(t.mon);
-    u8g2.setCursor(38, 100);
-    u8g2.print("--");
-    u8g2.setCursor(44, 100);
+    u8g2.setCursor(30, 63);
     u8g2.print(t.date);
-    u8g2.setCursor(1, 120);
+    u8g2.setCursor(50, 63);
     u8g2.print(t.hr);
-    u8g2.setCursor(11, 120);
-    u8g2.print(" : ");
-    u8g2.setCursor(20, 120);
+    u8g2.setCursor(70, 63);
     u8g2.print(t.min);
-    u8g2.setCursor(28, 120);
-    u8g2.print(" : ");
-    u8g2.setCursor(40, 120);
+    u8g2.setCursor(90, 63);
     u8g2.print(t.sec);
+
+  
   } while ( u8g2.nextPage() );
+
+
 
   delay(100);
   while (Serial1.available())
