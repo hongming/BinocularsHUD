@@ -22,16 +22,18 @@
   屏幕：https://github.com/olikraus/u8g2
 */
 /*
-数据计算来自：磁偏角 https://www.ngdc.noaa.gov/geomag-web/#declination
+  数据计算来自：磁偏角 https://www.ngdc.noaa.gov/geomag-web/#declination
 */
 /* Example sketch for interfacing with the DS1302 timekeeping chip.
 
- Copyright (c) 2009, Matt Sparks
- All rights reserved.
+  Copyright (c) 2009, Matt Sparks
+  All rights reserved.
 
- https://github.com/msparks/arduino-ds1302
+  https://github.com/msparks/arduino-ds1302
 */
-
+/*
+  加入与Stellarium通信的代码，标示当前位置。
+*/
 //U8G2显示屏幕
 #include <Arduino.h>
 #include <U8g2lib.h>
@@ -70,11 +72,16 @@ float Altitude;
 //本地时角，N->W
 float Local_Hour_A;
 
-//望远镜指向的赤纬
+//望远镜指向的赤纬，浮点数和拆分后的整数
 float Astro_HUD_RA;
-
-//望远镜指向的赤经  Astro_HUD_DEC=Sidereal_Time_Local-H
+int Mod_RA_HH;
+int Mod_RA_MM;
+int Mod_RA_SS;
+//望远镜指向的赤经，浮点数和拆分后的整数 Astro_HUD_DEC=Sidereal_Time_Local-H
 float Astro_HUD_DEC;
+int Mod_DEC_DD;
+int Mod_DEC_MM;
+int Mod_DEC_SS;
 
 //儒略日和简化儒略日
 double JD, MJD;
@@ -106,6 +113,10 @@ DS1302 rtc(kCePin, kIoPin, kSclkPin);
 }
 //屏幕显示偏转270度，https://github.com/olikraus/u8g2/wiki/u8g2reference#setdisplayrotation
 
+//将串口获得的数据，存储到一个字符串内，在Stellarium内使用
+char inChar;
+String Stellarium = "";
+
 void setup() {
   //启动图形库
   u8g2.begin();
@@ -119,15 +130,15 @@ void setup() {
   //观测者所在经度
   Longitude = 121.3997;
   //观测者所在位置的磁偏角
-  Magnetic_Delination=5.9;
-// Magnetic_Delination=0;
+  Magnetic_Delination = 5.9;
+  // Magnetic_Delination=0;
   //启动RTC、设置时间
-    // Initialize a new chip by turning off write protection and clearing the
+  // Initialize a new chip by turning off write protection and clearing the
   // clock halt flag. These methods needn't always be called. See the DS1302
   // datasheet for details.
   rtc.writeProtect(false);
   rtc.halt(false);
-  
+
   // Make a new time object to set the date and time.
   // Sunday, September 22, 2013 at 01:38:50.
   //  Time t(2017, 6, 12, 1, 22,35, Time::kSunday);
@@ -138,30 +149,28 @@ void setup() {
 }
 void loop() {
 
-
   //以下获得JY901实时方位角和地平维度基础数据,JY901数据（ROLL,PITCH,YAW）与A方位角/地平纬度的关系变换
 
-  float jy_yaw = 180.0-Magnetic_Delination-(float)JY901.stcAngle.Angle[2] / 32768 * 180; 
-  float jy_pitch = -1*(float)JY901.stcAngle.Angle[0] / 32768 * 180;
-  // if (jy_yaw<=0)
-  //    {jy_yaw=-1*jy_yaw;}
-  //  else
-  //    {jy_yaw=360-jy_yaw;}
+  float jy_yaw = 180.0 - Magnetic_Delination - (float)JY901.stcAngle.Angle[2] / 32768 * 180;
+  float jy_pitch = -1 * (float)JY901.stcAngle.Angle[0] / 32768 * 180;
 
-  Serial.print("Azimuth");
-  Serial.print(jy_yaw);
-  Serial.print("         ");
-  Serial.print("Altitude");
-  Serial.print(jy_pitch);
-  Serial.print("         ");
+  /*
+    显示原始方位角、高度角，隐藏
+    Serial.print("Azimuth");
+    Serial.print(jy_yaw);
+    Serial.print("         ");
+    Serial.print("Altitude");
+    Serial.print(jy_pitch);
+    Serial.print("         ");
+  */
   //测试用方位角（弧度），获取和计算,假设为0
-  Azimuth = jy_yaw*2 * PI / 360;
+  Azimuth = jy_yaw * 2 * PI / 360;
 
   //测试用地平纬度（弧度），获取和计算，假设为65度
-  Altitude = jy_pitch* 2 * PI / 360;
+  Altitude = jy_pitch * 2 * PI / 360;
 
   //以下获得实时时间
- 
+
   Time t = rtc.time();
 
 
@@ -197,46 +206,106 @@ void loop() {
   //  Serial.print("  ");
   //本地恒星时
   Siderial_Time_Local = Siderial_Time + Longitude / 15;
-  //Siderial_Time_Local = Siderial_Time + 8.0;
 
   while (Siderial_Time_Local < 0.0)
     Siderial_Time_Local += 24.0;
   while (Siderial_Time_Local > 24.0)
     Siderial_Time_Local -= 24.0;
-  //  Serial.print("LST is: ");
-  //  Serial.print("  ");
-  //  Serial.print(Siderial_Time_Local, 6);
-  //  Serial.print("  ");
+  /*
+     打印LST本地时间
+      Serial.print("LST is: ");
+      Serial.print("  ");
+      Serial.print(Siderial_Time_Local, 6);
+      Serial.print("  ");
+  */
   //计算赤经
   Astro_HUD_RA = Siderial_Time_Local - atan(sin(Azimuth) / ( cos(Azimuth) * sin(Latitude * (2 * PI / 360)) - tan(Altitude) * cos(Latitude * (2 * PI / 360)) )) * 180 / (PI * 15) ;
+  Mod_RA_HH = int(Astro_HUD_RA);
+  Mod_RA_MM = int(fmod(Astro_HUD_RA, 1) * 60);
+  Mod_RA_SS = int((Astro_HUD_RA - Mod_RA_HH - Mod_RA_MM / 60) * 60);
+
   //计算赤纬δ = 赤纬。天赤道以北为正，以南为负。
   Astro_HUD_DEC = asin(sin(Latitude * 2 * PI / 360) * sin(Altitude) + cos(Latitude * (2 * PI / 360)) * cos(Altitude) * cos(Azimuth)) * 360 / (2 * PI);
-  // Siderial_Time_Local * 15 -
-  //* 360 / (2 * PI) ;
-  Serial.print("RA:");
-  //  Serial.print(Astro_HUD_RA);
-  //    Serial.print("  ");
-  Serial.print(int(floor(Astro_HUD_RA)));
-  Serial.print("h");
-  Serial.print(round((Astro_HUD_RA - floor(Astro_HUD_RA)) * 60));
-  Serial.print("m -module ");
-//用取模的方式计算RA-开始
-  Serial.print(floor(Astro_HUD_RA));
-  Serial.print(" h ");
-  Serial.print(int(fmod(Astro_HUD_RA,1)*60));
-  Serial.print(" m  ");
-//用取模的方式计算RA-结束
-  Serial.print(" Dec:");
-  Serial.print(int(floor(Astro_HUD_DEC)));
-  Serial.print("°");
-  Serial.print(round((Astro_HUD_DEC - int(Astro_HUD_DEC)) * 60));
-  Serial.print("' module ");
-//用取模的方式计算DEC-开始
-  Serial.print(int(floor(Astro_HUD_DEC)));
-  Serial.print(" h ");
-  Serial.print(round(60*abs(Astro_HUD_DEC-int(Astro_HUD_DEC))));
-  Serial.println(" m  ");
-//用取模的方式计算DEC-结束
+  Mod_DEC_DD = int(Astro_HUD_DEC);
+  Mod_DEC_MM = int(fmod(abs(Astro_HUD_DEC), 1) * 60);
+  Mod_DEC_SS = int((abs(Astro_HUD_DEC) - abs(Mod_DEC_DD) - Mod_DEC_MM / 60) * 60);
+
+  /*串口输出方位角、高度角等信息
+    Serial.print("RA:");
+    Serial.print(Astro_HUD_RA);
+    Serial.print("->");
+    Serial.print(Mod_RA_HH);
+    Serial.print(" h ");
+    Serial.print(Mod_RA_MM);
+    Serial.print(" m ");
+    Serial.print(Mod_RA_SS);
+    Serial.print(" s");
+    Serial.print("DEC:");
+    Serial.print(Astro_HUD_DEC);
+    Serial.print("->");
+    Serial.print(Mod_DEC_DD);
+    Serial.print(" d ");
+    Serial.print(Mod_DEC_MM);
+    Serial.print(" m ");
+    Serial.print(Mod_DEC_SS);
+    Serial.println(" s");
+  */
+
+  //读取Stellarium数据
+  while (Serial.available() > 0) {
+    inChar = Serial.read();
+    Stellarium += String(inChar);
+    delay(5);
+  }
+
+  //向Stellarium传送RA赤经值
+  if (Stellarium = "#:GR#") {
+    if (Mod_RA_HH < 10) {
+      Serial.print("0");
+    }
+    Serial.print(Mod_RA_HH);
+    Serial.print(":");
+    if (Mod_RA_MM < 10) {
+      Serial.print("0");
+    }
+    Serial.print(Mod_RA_MM);
+    Serial.print(":");
+    if (Mod_RA_SS < 10) {
+      Serial.print("0");
+    }
+    Serial.print(Mod_RA_SS);
+    Serial.print("#");
+    Stellarium = "";
+  }
+  //向Stellarium传送DEC赤经值
+  if (Stellarium = "#:GD#") {
+    if ((Mod_DEC_DD >= 0 && Mod_DEC_DD < 10) ) {
+      Serial.print ("+0");
+      Serial.print(Mod_DEC_DD);
+    } else if (Mod_DEC_DD >= 10) {
+      Serial.print ("+");
+      Serial.print(Mod_DEC_DD);
+    }
+    else if ((Mod_DEC_DD < 0) && abs(Mod_DEC_DD) < 10 ) {
+      Serial.print("-0");
+      Serial.print(abs(Mod_DEC_DD));
+    } else {
+      Serial.print(Mod_DEC_DD);
+    }
+    Serial.print("*");
+    if (Mod_DEC_MM < 10) {
+      Serial.print("0");
+    }
+    Serial.print(Mod_DEC_MM);
+    Serial.print(":");
+    if (Mod_DEC_SS < 10) {
+      Serial.print("0");
+    }
+    Serial.print(Mod_DEC_SS);
+    Serial.print("#");
+    Stellarium = "";
+  }
+
 
   //在屏幕上显示
 
@@ -250,33 +319,33 @@ void loop() {
     u8g2.print(F("R"));
     u8g2.setCursor(10, 15);
     u8g2.setFont(u8g2_font_helvB12_tf);
-    u8g2.print(int(floor(Astro_HUD_RA)));
+    u8g2.print(Mod_RA_HH);
     u8g2.setCursor(30, 15);
     u8g2.setFont(u8g2_font_profont12_tf);
     u8g2.print(F("h"));
     u8g2.setCursor(37, 15);
-    u8g2.print(int(fmod(Astro_HUD_RA,1)*60));
+    u8g2.print(Mod_RA_MM);
     u8g2.setCursor(50, 15);
-    u8g2.print(F("m"));  
-  
+    u8g2.print(F("m"));
+
     u8g2.setCursor(69, 15);
     u8g2.setFont(u8g2_font_profont12_tf);
     u8g2.print(F("D"));
     u8g2.setCursor(77, 15);
     u8g2.setFont(u8g2_font_helvB12_tf);
-    u8g2.print(int(floor(Astro_HUD_DEC)));
+    u8g2.print(Mod_DEC_DD);
     u8g2.setCursor(99, 15);
     u8g2.setFont(u8g2_font_unifont_t_symbols);
     u8g2.drawGlyph(99, 15, 0x00b0);
     u8g2.setCursor(106, 15);
-    u8g2.print(round(60*abs(Astro_HUD_DEC-int(Astro_HUD_DEC))));
+    u8g2.print(Mod_DEC_MM);
     u8g2.setCursor(125, 15);
     u8g2.setFont(u8g2_font_helvB12_tf);
-    u8g2.print(F("'"));  
+    u8g2.print(F("'"));
 
-  //打印地平圈和方位角
-  u8g2.drawCircle(10,40,10,U8G2_DRAW_ALL);
-  u8g2.drawLine(10,40,10-10*sin(Azimuth),40+10*cos(Azimuth));
+    //打印地平圈和方位角
+    u8g2.drawCircle(10, 40, 10, U8G2_DRAW_ALL);
+    u8g2.drawLine(10, 40, 10 - 10 * sin(Azimuth), 40 + 10 * cos(Azimuth));
     u8g2.setFont(u8g2_font_profont12_tf);
 
     u8g2.setCursor(30, 50);
@@ -284,11 +353,11 @@ void loop() {
 
 
 
-//打印高度角
-  u8g2.drawCircle(69,50,20,U8G2_DRAW_UPPER_RIGHT);
-  u8g2.drawLine(69,50,89,50);
-  u8g2.drawLine(69,50,69,30);
-  u8g2.drawLine(69,50,69+20*cos(Altitude),50-20*sin(Altitude));
+    //打印高度角
+    u8g2.drawCircle(69, 50, 20, U8G2_DRAW_UPPER_RIGHT);
+    u8g2.drawLine(69, 50, 89, 50);
+    u8g2.drawLine(69, 50, 69, 30);
+    u8g2.drawLine(69, 50, 69 + 20 * cos(Altitude), 50 - 20 * sin(Altitude));
     u8g2.setFont(u8g2_font_profont12_tf);
 
     u8g2.setCursor(95, 50);
@@ -307,12 +376,12 @@ void loop() {
     u8g2.setCursor(90, 63);
     u8g2.print(t.sec);
 
-  
+
   } while ( u8g2.nextPage() );
 
 
 
-  delay(100);
+  delay(10);
   while (Serial1.available())
   {
     JY901.CopeSerialData(Serial1.read()); //Call JY901 data cope function
