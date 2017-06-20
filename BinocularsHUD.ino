@@ -123,7 +123,6 @@ void setup() {
   //启动串口
   Serial.begin(9600);
   Serial1.begin(9600);
-  Serial.println("Caculating.........");
   //提供观测者基础数据
   //观测者所在纬度
   Latitude = 31.0456;
@@ -259,7 +258,7 @@ void loop() {
   }
 
   //向Stellarium传送RA赤经值
-  if (Stellarium = "#:GR#") {
+  if (Stellarium == "#:GR#") {
     if (Mod_RA_HH < 10) {
       Serial.print("0");
     }
@@ -278,7 +277,7 @@ void loop() {
     Stellarium = "";
   }
   //向Stellarium传送DEC赤经值
-  if (Stellarium = "#:GD#") {
+  if (Stellarium == "#:GD#") {
     if ((Mod_DEC_DD >= 0 && Mod_DEC_DD < 10) ) {
       Serial.print ("+0");
       Serial.print(Mod_DEC_DD);
