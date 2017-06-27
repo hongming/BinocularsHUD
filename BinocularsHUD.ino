@@ -167,12 +167,12 @@ void loop() {
   float jy_pitch = -1 * (float)JY901.stcAngle.Angle[0] / 32768 * 180;
 
   //    显示原始方位角、高度角，隐藏
-  Serial.print("Azimuth");
-  Serial.print(jy_yaw);
-  Serial.print("         ");
-  Serial.print("Altitude");
-  Serial.print(jy_pitch);
-  Serial.println("         ");
+//  Serial.print("Azimuth");
+//  Serial.print(jy_yaw);
+//  Serial.print("         ");
+//  Serial.print("Altitude");
+//  Serial.print(jy_pitch);
+//  Serial.println("         ");
 
   //测试用方位角（弧度），获取和计算,假设为0
   Azimuth = jy_yaw * 2 * PI / 360;
