@@ -74,6 +74,9 @@ float Altitude;
 //本地时角，N->W
 float Local_Hour_A;
 
+//感应器的数值，jy_yaw_m为考虑了磁偏角后的方位角
+float jy_yaw,jy_pitch,jy_yaw_m;
+
 //望远镜指向的赤纬、赤经，浮点数和拆分后的整数
 float Astro_HUD_RA;
 int Mod_RA_HH;
@@ -88,8 +91,8 @@ int RA_AlignPin = A0;
 int DEC_AlignPin=A1;
 int RA_AlignPin_Offset = 0; 
 int DEC_AlignPin_Offset = 0; 
-float RA_AlignPin_Offset_F;
-float DEC_AlignPin_Offset_F;
+float RA_AlignPin_Offset_F=0;
+float DEC_AlignPin_Offset_F=0;
 
 //儒略日和简化儒略日
 double JD, MJD;
@@ -155,27 +158,32 @@ void setup() {
   //  以下仅用于重置时钟的时间，平时需注释掉
   // Make a new time object to set the date and time.
   // Sunday, September 22, 2013 at 01:38:50.
-  //  Time t(2017, 6, 27, 1, 43, 37, Time::kSunday);
+//    Time t(2017, 6, 29,22, 34, 57, Time::kSunday);
   // Set the time and date on the chip.
-  //  rtc.time(t);
+//    rtc.time(t);
 }
 void loop() {
 
   //以下获得JY901实时方位角和地平维度基础数据,JY901数据（ROLL,PITCH,YAW）与A方位角/地平纬度的关系变换
-
-  float jy_yaw = 180.0 - Magnetic_Delination - (float)JY901.stcAngle.Angle[2] / 32768 * 180;
-  float jy_pitch = -1 * (float)JY901.stcAngle.Angle[0] / 32768 * 180;
-
-  //    显示原始方位角、高度角，隐藏
+  //原公式，20170629验证后取消，jy_yaw = 180.0 - Magnetic_Delination - (float)JY901.stcAngle.Angle[2] / 32768 * 180;
+  jy_yaw = (float)JY901.stcAngle.Angle[2] / 32768 * 180;
+  if(jy_yaw>(180.0 - Magnetic_Delination)){
+    jy_yaw_m =360+180.0 - Magnetic_Delination - jy_yaw;  //磁北极附近，如果不做处理，会出现负值的方位角
+    }
+    else{
+     jy_yaw_m =180.0 - Magnetic_Delination - jy_yaw; 
+      }
+  jy_pitch = -1 * (float)JY901.stcAngle.Angle[0] / 32768 * 180;
+  
 //  Serial.print("Azimuth");
-//  Serial.print(jy_yaw);
+//  Serial.println(jy_yaw);
 //  Serial.print("         ");
 //  Serial.print("Altitude");
 //  Serial.print(jy_pitch);
 //  Serial.println("         ");
 
   //测试用方位角（弧度），获取和计算,假设为0
-  Azimuth = jy_yaw * 2 * PI / 360;
+  Azimuth = jy_yaw_m * 2 * PI / 360;
 
   //测试用地平纬度（弧度），获取和计算，假设为65度
   Altitude = jy_pitch * 2 * PI / 360;
