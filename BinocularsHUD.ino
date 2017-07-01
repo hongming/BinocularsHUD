@@ -36,7 +36,11 @@
   1、使用上位机软件校正后，指向几个特定的方位，比如北极星、水平正南，修正方位角和高度角
   2、使用弼马温1984（陈）赠送的EQASCOM Alignment文档中的Nearest Point Transformation，调节访问同1
   3、3–Point Transformation，来源同上
-  、*/
+  矩阵计算
+  验证  http://matrix.reshish.com/multCalculation.php 和https://matrixcalc.org/zh/#%7B%7B195119%2F10000,1649%2F100,87941%2F5000%7D,%7B279667%2F10000,-%28264333%2F10000%29,62833%2F5000%7D,%7B1,1,1%7D%7D%2A%7B%7B31%2F50,-%281%2F50%29,-%28517%2F50%29%7D,%7B1%2F4,-%283%2F100%29,-%28369%2F100%29%7D,%7B-%2887%2F100%29,1%2F20,1503%2F100%7D%7D
+  原理 https://en.wikipedia.org/wiki/Affine_transformation和https://zhuanlan.zhihu.com/p/23199679?utm_source=wechat_session&utm_medium=social
+
+*/
 
 
 //U8G2显示屏幕配置文件
@@ -56,7 +60,7 @@ U8G2_SSD1306_128X64_NONAME_1_4W_SW_SPI u8g2(U8G2_R0, /* clock=*/ 13, /* data=*/ 
 #include "Math.h"
 #include <stdio.h>
 #include <DS1302.h> //时钟库
-
+#include <MatrixMath.h> //矩阵预算库
 
 //以下定义变量
 
@@ -74,8 +78,8 @@ float Altitude;
 //本地时角，N->W
 float Local_Hour_A;
 
-//感应器的数值，jy_yaw_m为考虑了磁偏角后的方位角
-float jy_yaw,jy_pitch,jy_yaw_m;
+//感应器的数值，jy_yaw_m为考虑了磁偏角后的方位角，jy_pitch为传感器的高度角
+float jy_yaw, jy_pitch, jy_yaw_m;
 
 //望远镜指向的赤纬、赤经，浮点数和拆分后的整数
 float Astro_HUD_RA;
@@ -87,12 +91,24 @@ int Mod_DEC_DD;
 int Mod_DEC_MM;
 int Mod_DEC_SS;
 //用电位器，做单星校准，RA、DEC人工校正值
-int RA_AlignPin = A0;  
-int DEC_AlignPin=A1;
-int RA_AlignPin_Offset = 0; 
-int DEC_AlignPin_Offset = 0; 
-float RA_AlignPin_Offset_F=0;
-float DEC_AlignPin_Offset_F=0;
+int RA_AlignPin = A0;
+int DEC_AlignPin = A1;
+int RA_AlignPin_Offset = 0;
+int DEC_AlignPin_Offset = 0;
+float RA_AlignPin_Offset_F = 0;
+float DEC_AlignPin_Offset_F = 0;
+
+////目标矩阵--》星图的三颗星体的标准坐标，
+//float Matrix_Atlas[3][3];
+////原始矩阵--》感应器对准的三颗星体后得到的原始坐标
+//float Matrix_Sensor[3][3];
+////转换矩阵
+//float Matrix_T[3][3];
+////屏幕显示矩阵
+//float Matrix_Atlas_Goto[3][1];
+////传感器原始输出矩阵
+//float Matrix_Sensor_Goto[3][1];
+
 
 //儒略日和简化儒略日
 double JD, MJD;
@@ -130,6 +146,54 @@ String Stellarium = "";
 //望远镜指向在The Cambridge Star Atlas中的星图区域（Index to the star charts）
 int TCSA_Star_Chart;
 
+//Nexstarsite.com上的Star list星体表中的Alignment Stars
+void AlignmentStars_Print(const float [][3]);
+const int AlignmentStars_rows = 40;
+const int AlignmentStars_colums = 3;
+String  AlignmentStars_Name;
+float AlignmentStars_Altitude,AlignmentStars_Azimuth; //校准星体的实时地平高度角、方位角
+float AlignmentStars_Array[AlignmentStars_rows][AlignmentStars_colums] = {
+  {0, 2.10 , 29.10},
+  {1, 17.43 , 35.60},
+  {2, 297.70 , 8.90},
+  {3, 31.80 , 23.50},
+  {4, 79.18 , 46.00},
+  {5, 213.93 , 19.20},
+  {6, 96.00 , -52.70},
+  {7, 2.30 , 59.10},
+  {8, 14.18 , 60.70},
+  {9, 219.90 , -60.80},
+  {10, 210.95 , -60.40},
+  {11, 101.28 , -16.70},
+  {12, 114.83 , 5.20},
+  {13, 233.68 , 26.70},
+  {14, 186.65 , -63.10},
+  {15, 191.93 , -59.70},
+  {16, 292.68 , 28.00},
+  {17, 310.35 , 45.30},
+  {18, 24.43 , -57.20},
+  {19, 113.65 , 31.90},
+  {20, 116.33 , 28.00},
+  {21, 141.90 , -8.70},
+  {22, 177.28 , 14.60},
+  {23, 152.10 , 12.00},
+  {24, 279.23 , 38.80},
+  {25, 263.73 , 12.60},
+  {26, 88.80 , 7.40},
+  {27, 78.63 , -8.20},
+  {28, 306.40 , -56.70},
+  {29, 3.30 , 15.20},
+  {30, 345.95 , 28.10},
+  {31, 51.08 , 49.90},
+  {32, 344.43 , -29.60},
+  {33, 247.35 , -26.40},
+  {34, 68.98 , 16.50},
+  {35, 165.93 , 61.80},
+  {36, 200.98 , 54.90},
+  {37, 37.95 , 89.30},
+  {38, 137.00 , -43.40},
+  {39, 201.30 , -11.20},
+};
 
 void setup() {
   //启动图形库
@@ -158,29 +222,72 @@ void setup() {
   //  以下仅用于重置时钟的时间，平时需注释掉
   // Make a new time object to set the date and time.
   // Sunday, September 22, 2013 at 01:38:50.
-//    Time t(2017, 6, 29,22, 34, 57, Time::kSunday);
+  //    Time t(2017, 6, 29,22, 34, 57, Time::kSunday);
   // Set the time and date on the chip.
-//    rtc.time(t);
+  //    rtc.time(t);
+
+  //  //应显示的坐标，对应星图RA/DEC
+  //  Matrix_Atlas_Goto[0][1] = 0;
+  //  Matrix_Atlas_Goto[1][1] = 0;
+  //  Matrix_Atlas_Goto[2][1] = 1;
+  //  /*传感器获得的数值
+  //    Matrix_Sensor_Goto[0][1]=Astro_HUD_RA;
+  //    Matrix_Sensor_Goto[1][1]=Astro_HUD_DEC;
+  //  */
+  //  Matrix_Sensor_Goto[0][0] = 18;
+  //  Matrix_Sensor_Goto[1][0] = 24;
+  //  Matrix_Sensor_Goto[2][0] = 1;
+  //
+  //  /*三星校准-目标矩阵的数值
+  //    A_RA  B_RA  C_RA
+  //    A_Dec B_Dec C_Dec
+  //    1   1   1
+  //  */
+  //  Matrix_Atlas[0][0] = 19.51;
+  //  Matrix_Atlas[0][1] = 16.49;
+  //  Matrix_Atlas[0][2] = 17.58;
+  //  Matrix_Atlas[1][0] = 27.96;
+  //  Matrix_Atlas[1][1] = -26.43;
+  //  Matrix_Atlas[1][2] = 12.56;
+  //  Matrix_Atlas[2][0] = 1;
+  //  Matrix_Atlas[2][1] = 1;
+  //  Matrix_Atlas[2][2] = 1;
+  //
+  //  /*三星校准-传感器瞄准矩阵的数值
+  //    原始矩阵--》感应器计算后的原始坐标,Matrix_Sensor
+  //    a_RA  b_RA  c_RA
+  //    a_Dec b_Dec c_Dec
+  //    1   1   1
+  //  */
+  //  Matrix_Sensor[0][0] = 19;
+  //  Matrix_Sensor[0][1] = 16;
+  //  Matrix_Sensor[0][2] = 17;
+  //  Matrix_Sensor[1][0] = 30;
+  //  Matrix_Sensor[1][1] = -23;
+  //  Matrix_Sensor[1][2] = 15;
+  //  Matrix_Sensor[2][0] = 1;
+  //  Matrix_Sensor[2][1] = 1;
+  //  Matrix_Sensor[2][2] = 1;
 }
 void loop() {
 
   //以下获得JY901实时方位角和地平维度基础数据,JY901数据（ROLL,PITCH,YAW）与A方位角/地平纬度的关系变换
   //原公式，20170629验证后取消，jy_yaw = 180.0 - Magnetic_Delination - (float)JY901.stcAngle.Angle[2] / 32768 * 180;
   jy_yaw = (float)JY901.stcAngle.Angle[2] / 32768 * 180;
-  if(jy_yaw>(180.0 - Magnetic_Delination)){
-    jy_yaw_m =360+180.0 - Magnetic_Delination - jy_yaw;  //磁北极附近，如果不做处理，会出现负值的方位角
-    }
-    else{
-     jy_yaw_m =180.0 - Magnetic_Delination - jy_yaw; 
-      }
+  if (jy_yaw > (180.0 - Magnetic_Delination)) {
+    jy_yaw_m = 360 + 180.0 - Magnetic_Delination - jy_yaw; //磁北极附近，如果不做处理，会出现负值的方位角
+  }
+  else {
+    jy_yaw_m = 180.0 - Magnetic_Delination - jy_yaw;
+  }
   jy_pitch = -1 * (float)JY901.stcAngle.Angle[0] / 32768 * 180;
-  
-//  Serial.print("Azimuth");
-//  Serial.println(jy_yaw);
-//  Serial.print("         ");
-//  Serial.print("Altitude");
-//  Serial.print(jy_pitch);
-//  Serial.println("         ");
+
+  //  Serial.print("Azimuth");
+  //  Serial.println(jy_yaw);
+  //  Serial.print("         ");
+  //  Serial.print("Altitude");
+  //  Serial.print(jy_pitch);
+  //  Serial.println("         ");
 
   //测试用方位角（弧度），获取和计算,假设为0
   Azimuth = jy_yaw_m * 2 * PI / 360;
@@ -234,21 +341,33 @@ void loop() {
       Serial.print(Siderial_Time_Local, 6);
       Serial.print("  ");
   */
-//获取校正值
+  //获取校正值
   RA_AlignPin_Offset = analogRead(RA_AlignPin);
   DEC_AlignPin_Offset = analogRead(DEC_AlignPin);
-  RA_AlignPin_Offset_F = map(RA_AlignPin_Offset, 0, 1023, -512, 511)*0.01;
-  DEC_AlignPin_Offset_F = map(DEC_AlignPin_Offset, 0, 1023, -512, 511)*0.01;
+  RA_AlignPin_Offset_F = map(RA_AlignPin_Offset, 0, 1023, -512, 511) * 0.01;
+  DEC_AlignPin_Offset_F = map(DEC_AlignPin_Offset, 0, 1023, -512, 511) * 0.01;
 
   //计算赤经
   Astro_HUD_RA = RA_AlignPin_Offset_F + Siderial_Time_Local - atan(sin(Azimuth) / ( cos(Azimuth) * sin(Latitude * (2 * PI / 360)) - tan(Altitude) * cos(Latitude * (2 * PI / 360)) )) * 180 / (PI * 15) ;
+  //计算赤纬δ = 赤纬。天赤道以北为正，以南为负。
+  Astro_HUD_DEC = DEC_AlignPin_Offset_F + asin(sin(Latitude * 2 * PI / 360) * sin(Altitude) + cos(Latitude * (2 * PI / 360)) * cos(Altitude) * cos(Azimuth)) * 360 / (2 * PI);
+
+  //
+  //  MatrixD.Invert((float*)Matrix_Sensor, 3);  //计算逆矩阵
+  //  MatrixD.Print((float*)Matrix_Sensor, 3, 3, "Matrix_Sensor_inver");
+  //  MatrixD.Multiply((float*)Matrix_Atlas, (float*)Matrix_Sensor, 3, 3, 3, (float*)Matrix_T);
+  //  MatrixD.Print((float*)Matrix_T, 3, 3, "T");//获得转换矩阵
+  //  MatrixD.Multiply((float*)Matrix_T, (float*)Matrix_Sensor_Goto, 3, 3, 1, (float*)Matrix_Atlas_Goto);
+  //  MatrixD.Print((float*)Matrix_Atlas_Goto, 3, 1, "On_OLED");//获得最终显示的内容矩阵
+  //
+
+
+
+  //以下获取赤经、赤纬的独立显示值
   Mod_RA_HH = int(Astro_HUD_RA);
   Mod_RA_MM = int(fmod(Astro_HUD_RA, 1) * 60);
   Mod_RA_MM = int(Mod_RA_MM / 10) * 10; //在精度允许范围内，以10分钟为基础分段显示
   Mod_RA_SS = int((Astro_HUD_RA - Mod_RA_HH - Mod_RA_MM / 60) * 60);
-
-  //计算赤纬δ = 赤纬。天赤道以北为正，以南为负。
-  Astro_HUD_DEC = DEC_AlignPin_Offset_F + asin(sin(Latitude * 2 * PI / 360) * sin(Altitude) + cos(Latitude * (2 * PI / 360)) * cos(Altitude) * cos(Azimuth)) * 360 / (2 * PI);
   Mod_DEC_DD = int(Astro_HUD_DEC);
   Mod_DEC_MM = int(fmod(abs(Astro_HUD_DEC), 1) * 60);
   Mod_DEC_MM = int(Mod_DEC_MM / 10) * 10; //在精度允许范围内，以10角分为基础分段显示
@@ -391,14 +510,14 @@ void loop() {
     u8g2.setCursor(50, 15);
     u8g2.print(F("m"));
 
-//显示RA手动调整值
+    //显示RA手动调整值
     u8g2.setCursor(30, 30);
     u8g2.setFont(u8g2_font_profont10_tf);
     u8g2.print(RA_AlignPin_Offset_F);
-//显示DEC手动调整值
+    //显示DEC手动调整值
     u8g2.setCursor(99, 30);
     u8g2.setFont(u8g2_font_profont10_tf);
-    u8g2.print(DEC_AlignPin_Offset_F);    
+    u8g2.print(DEC_AlignPin_Offset_F);
 
     //打印DEC赤经
     u8g2.setCursor(69, 15);
@@ -451,6 +570,99 @@ void loop() {
 
   delay(10);
 
+  //在串口中输出Nextstarsite的Alignment Star校准星体信息
+//  Serial.print("Values in arry by row are: ");
+//  Serial.print("\n");
+//  delay(500);
+//  AlignmentStars_Print(AlignmentStars_Array);
+//  while (1);
+  for(int i= 0;i<AlignmentStars_rows;i++){
+  
+      AlignmentStars_Altitude=asin(sin(Latitude)*sin(AlignmentStars_Array[i][1]) + cos(Latitude)*cos(AlignmentStars_Array[i][1])*cos(Siderial_Time_Local-AlignmentStars_Array[i][2]));
+      AlignmentStars_Azimuth = atan(sin(Siderial_Time_Local)/( cos(Siderial_Time_Local)*sin(Latitude) - tan(AlignmentStars_Array[i][1])*cos(Latitude) )) ;
+      if(AlignmentStars_Altitude>=PI/3){
+      //地平高度大于45度时，才列出来星座、名字
+     AlignmentStars_Names(i);
+     Serial.print("\n");
+      Serial.print(AlignmentStars_Name);
+            Serial.print("\t");
+            Serial.print(AlignmentStars_Azimuth*360/(2*PI));//校准星体的方位角
+            Serial.print("\t");
+      Serial.print(AlignmentStars_Altitude*360/(2*PI));//校准星体的高度角
+            Serial.print("\t");
+
+      for(int j=1;j<AlignmentStars_colums;j++){
+      Serial.print(AlignmentStars_Array[i][j]);
+      Serial.print("\t");      }
+  }
+  }
+    while(1);
+
+}
+
+//打印数组中的RA、Dec信息
+void AlignmentStars_Print(const float a[][AlignmentStars_colums]) {
+  for (int i = 0; i < AlignmentStars_rows; i++) {
+
+    Serial.println();
+    AlignmentStars_Names(i);
+
+    Serial.print(AlignmentStars_Name);
+    Serial.print("\t");
+    for (int j = 1; j < AlignmentStars_colums; j++) {
+      Serial.print(a[i][j]);
+      Serial.print("\t");
+    }
+
+  }
+}
+
+//Nexstarsite.com上的Star list星体表中的Alignment Stars的星座、名字
+void AlignmentStars_Names(int x) {
+  switch (x) {
+    case 0 : AlignmentStars_Name = "And_Alpheratz"; break;
+    case 1 : AlignmentStars_Name = "And_Mirach"; break;
+    case 2 : AlignmentStars_Name = "Aql_Altair"; break;
+    case 3 : AlignmentStars_Name = "Ari_Hamal"; break;
+    case 4 : AlignmentStars_Name = "Aur_Capella"; break;
+    case 5 : AlignmentStars_Name = "Boo_Arcturus"; break;
+    case 6 : AlignmentStars_Name = "Car_Canopus"; break;
+    case 7 : AlignmentStars_Name = "Cas_Caph"; break;
+    case 8 : AlignmentStars_Name = "Cas_Navi"; break;
+    case 9 : AlignmentStars_Name = "Cen_Alpha Centauri"; break;
+    case 10: AlignmentStars_Name = "Cen_Hadar"; break;
+    case 11: AlignmentStars_Name = "Cma_Sirius"; break;
+    case 12: AlignmentStars_Name = "Cmi_Procyon"; break;
+    case 13: AlignmentStars_Name = "CrB_Alphecca"; break;
+    case 14: AlignmentStars_Name = "Cru_Acrux"; break;
+    case 15: AlignmentStars_Name = "Cru_Mimosa"; break;
+    case 16: AlignmentStars_Name = "Cyg_Albireo"; break;
+    case 17: AlignmentStars_Name = "Cyg_Deneb"; break;
+    case 18: AlignmentStars_Name = "Eri_Achernar"; break;
+    case 19: AlignmentStars_Name = "Gem_Castor"; break;
+    case 20: AlignmentStars_Name = "Gem_Pollux"; break;
+    case 21: AlignmentStars_Name = "Hya_Alphard"; break;
+    case 22: AlignmentStars_Name = "Leo_Denebola"; break;
+    case 23: AlignmentStars_Name = "Leo_Regulus"; break;
+    case 24: AlignmentStars_Name = "Lyr_Vega"; break;
+    case 25: AlignmentStars_Name = "Oph_Rasalhague"; break;
+    case 26: AlignmentStars_Name = "Ori_Betelgeuse"; break;
+    case 27: AlignmentStars_Name = "Ori_Rigel"; break;
+    case 28: AlignmentStars_Name = "Pav_Peacock"; break;
+    case 29: AlignmentStars_Name = "Peg_Algenib"; break;
+    case 30: AlignmentStars_Name = "Peg_Scheat"; break;
+    case 31: AlignmentStars_Name = "Per_Mirfak"; break;
+    case 32: AlignmentStars_Name = "PsA_Fomalhaut"; break;
+    case 33: AlignmentStars_Name = "Sco_Antares"; break;
+    case 34: AlignmentStars_Name = "Tau_Aldebaran"; break;
+    case 35: AlignmentStars_Name = "Uma_Dubhe"; break;
+    case 36: AlignmentStars_Name = "Uma_Mizar"; break;
+    case 37: AlignmentStars_Name = "Umi_Polaris"; break;
+    case 38: AlignmentStars_Name = "Vel_Suhail"; break;
+    case 39: AlignmentStars_Name = "Vir_Spica"; break;
+    default:
+      break;
+  }
 }
 
 void serialEvent1() {
@@ -461,4 +673,3 @@ void serialEvent1() {
     JY901.CopeSerialData(Serial1.read()); //Call JY901 data cope function
   }
 }
-
