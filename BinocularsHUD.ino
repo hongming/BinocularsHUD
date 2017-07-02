@@ -98,16 +98,20 @@ int DEC_AlignPin_Offset = 0;
 float RA_AlignPin_Offset_F = 0;
 float DEC_AlignPin_Offset_F = 0;
 
-////目标矩阵--》星图的三颗星体的标准坐标，
-//float Matrix_Atlas[3][3];
-////原始矩阵--》感应器对准的三颗星体后得到的原始坐标
-//float Matrix_Sensor[3][3];
-////转换矩阵
-//float Matrix_T[3][3];
-////屏幕显示矩阵
-//float Matrix_Atlas_Goto[3][1];
-////传感器原始输出矩阵
-//float Matrix_Sensor_Goto[3][1];
+//目标矩阵--》星图的三颗星体的标准坐标，
+float Matrix_Atlas[3][3];
+//三颗校准星体的序号
+int Alignment_Star_One,Alignment_Star_Two,Alignment_Star_Three;
+//原始矩阵--》感应器对准的三颗星体后得到的原始坐标
+float Matrix_Sensor[3][3];
+//三颗校准星体的实际位置的序号，可能用不上
+int Point_Star_One,Point_Star_Two,Point_Star_Three;
+//转换矩阵
+float Matrix_T[3][3];
+//屏幕显示矩阵
+float Matrix_Atlas_Goto[3][1];
+//传感器原始输出矩阵
+float Matrix_Sensor_Goto[3][1];
 
 
 //儒略日和简化儒略日
@@ -151,7 +155,7 @@ void AlignmentStars_Print(const float [][3]);
 const int AlignmentStars_rows = 40;
 const int AlignmentStars_colums = 3;
 String  AlignmentStars_Name;
-float AlignmentStars_Altitude,AlignmentStars_Azimuth; //校准星体的实时地平高度角、方位角
+float AlignmentStars_Altitude, AlignmentStars_Azimuth; //校准星体的实时地平高度角、方位角
 float AlignmentStars_Array[AlignmentStars_rows][AlignmentStars_colums] = {
   {0, 2.10 , 29.10},
   {1, 17.43 , 35.60},
@@ -226,48 +230,6 @@ void setup() {
   // Set the time and date on the chip.
   //    rtc.time(t);
 
-  //  //应显示的坐标，对应星图RA/DEC
-  //  Matrix_Atlas_Goto[0][1] = 0;
-  //  Matrix_Atlas_Goto[1][1] = 0;
-  //  Matrix_Atlas_Goto[2][1] = 1;
-  //  /*传感器获得的数值
-  //    Matrix_Sensor_Goto[0][1]=Astro_HUD_RA;
-  //    Matrix_Sensor_Goto[1][1]=Astro_HUD_DEC;
-  //  */
-  //  Matrix_Sensor_Goto[0][0] = 18;
-  //  Matrix_Sensor_Goto[1][0] = 24;
-  //  Matrix_Sensor_Goto[2][0] = 1;
-  //
-  //  /*三星校准-目标矩阵的数值
-  //    A_RA  B_RA  C_RA
-  //    A_Dec B_Dec C_Dec
-  //    1   1   1
-  //  */
-  //  Matrix_Atlas[0][0] = 19.51;
-  //  Matrix_Atlas[0][1] = 16.49;
-  //  Matrix_Atlas[0][2] = 17.58;
-  //  Matrix_Atlas[1][0] = 27.96;
-  //  Matrix_Atlas[1][1] = -26.43;
-  //  Matrix_Atlas[1][2] = 12.56;
-  //  Matrix_Atlas[2][0] = 1;
-  //  Matrix_Atlas[2][1] = 1;
-  //  Matrix_Atlas[2][2] = 1;
-  //
-  //  /*三星校准-传感器瞄准矩阵的数值
-  //    原始矩阵--》感应器计算后的原始坐标,Matrix_Sensor
-  //    a_RA  b_RA  c_RA
-  //    a_Dec b_Dec c_Dec
-  //    1   1   1
-  //  */
-  //  Matrix_Sensor[0][0] = 19;
-  //  Matrix_Sensor[0][1] = 16;
-  //  Matrix_Sensor[0][2] = 17;
-  //  Matrix_Sensor[1][0] = 30;
-  //  Matrix_Sensor[1][1] = -23;
-  //  Matrix_Sensor[1][2] = 15;
-  //  Matrix_Sensor[2][0] = 1;
-  //  Matrix_Sensor[2][1] = 1;
-  //  Matrix_Sensor[2][2] = 1;
 }
 void loop() {
 
@@ -282,6 +244,9 @@ void loop() {
   }
   jy_pitch = -1 * (float)JY901.stcAngle.Angle[0] / 32768 * 180;
 
+//校准星体计算
+//jy_yaw_m=63.5;
+//jy_pitch=40.8;
   //  Serial.print("Azimuth");
   //  Serial.println(jy_yaw);
   //  Serial.print("         ");
@@ -309,8 +274,8 @@ void loop() {
 
   //儒略日，计算采用Navy.mil的计算试试看
   JD = 367 * Year - int((7 * (Year + int((Month + 9) / 12))) / 4) + int((275 * Month) / 9) + Day + 1721013.5 + Hour / 24 + Minute / 1440 + Second / 86400 - 0.5 * ((((100 * Year + Month - 190002.5) > 0) - ((100 * Year + Month - 190002.5) < 0))) + 0.5;
-  //  Serial.print("JD is   ");
-  //  Serial.print(JD, 6);
+    Serial.print("JD is   ");
+    Serial.print(JD, 6);
   //简化儒略日，计算
   MJD = JD - 2400000.5;
   //  Serial.print("     MJD is   ");
@@ -334,13 +299,13 @@ void loop() {
     Siderial_Time_Local += 24.0;
   while (Siderial_Time_Local > 24.0)
     Siderial_Time_Local -= 24.0;
-  /*
-     打印LST本地时间
-      Serial.print("LST is: ");
-      Serial.print("  ");
-      Serial.print(Siderial_Time_Local, 6);
-      Serial.print("  ");
-  */
+
+//打印LST本地时间
+        Serial.print("LST is: ");
+        Serial.print("  ");
+        Serial.print(Siderial_Time_Local, 6);
+        Serial.print("  ");
+
   //获取校正值
   RA_AlignPin_Offset = analogRead(RA_AlignPin);
   DEC_AlignPin_Offset = analogRead(DEC_AlignPin);
@@ -352,16 +317,9 @@ void loop() {
   //计算赤纬δ = 赤纬。天赤道以北为正，以南为负。
   Astro_HUD_DEC = DEC_AlignPin_Offset_F + asin(sin(Latitude * 2 * PI / 360) * sin(Altitude) + cos(Latitude * (2 * PI / 360)) * cos(Altitude) * cos(Azimuth)) * 360 / (2 * PI);
 
-  //
-  //  MatrixD.Invert((float*)Matrix_Sensor, 3);  //计算逆矩阵
-  //  MatrixD.Print((float*)Matrix_Sensor, 3, 3, "Matrix_Sensor_inver");
-  //  MatrixD.Multiply((float*)Matrix_Atlas, (float*)Matrix_Sensor, 3, 3, 3, (float*)Matrix_T);
-  //  MatrixD.Print((float*)Matrix_T, 3, 3, "T");//获得转换矩阵
-  //  MatrixD.Multiply((float*)Matrix_T, (float*)Matrix_Sensor_Goto, 3, 3, 1, (float*)Matrix_Atlas_Goto);
-  //  MatrixD.Print((float*)Matrix_Atlas_Goto, 3, 1, "On_OLED");//获得最终显示的内容矩阵
-  //
-
-
+Serial.print(Astro_HUD_RA);
+Serial.print("--");
+Serial.println(Astro_HUD_DEC);
 
   //以下获取赤经、赤纬的独立显示值
   Mod_RA_HH = int(Astro_HUD_RA);
@@ -571,32 +529,98 @@ void loop() {
   delay(10);
 
   //在串口中输出Nextstarsite的Alignment Star校准星体信息
-//  Serial.print("Values in arry by row are: ");
-//  Serial.print("\n");
-//  delay(500);
-//  AlignmentStars_Print(AlignmentStars_Array);
-//  while (1);
-  for(int i= 0;i<AlignmentStars_rows;i++){
-  
-      AlignmentStars_Altitude=asin(sin(Latitude)*sin(AlignmentStars_Array[i][1]) + cos(Latitude)*cos(AlignmentStars_Array[i][1])*cos(Siderial_Time_Local-AlignmentStars_Array[i][2]));
-      AlignmentStars_Azimuth = atan(sin(Siderial_Time_Local)/( cos(Siderial_Time_Local)*sin(Latitude) - tan(AlignmentStars_Array[i][1])*cos(Latitude) )) ;
-      if(AlignmentStars_Altitude>=PI/3){
-      //地平高度大于45度时，才列出来星座、名字
-     AlignmentStars_Names(i);
-     Serial.print("\n");
-      Serial.print(AlignmentStars_Name);
-            Serial.print("\t");
-            Serial.print(AlignmentStars_Azimuth*360/(2*PI));//校准星体的方位角
-            Serial.print("\t");
-      Serial.print(AlignmentStars_Altitude*360/(2*PI));//校准星体的高度角
-            Serial.print("\t");
+  //  Serial.print("Values in arry by row are: ");
+  //  Serial.print("\n");
+  //  delay(500);
+  //  AlignmentStars_Print(AlignmentStars_Array);
+  //  while (1);
+  for (int i = 0; i < AlignmentStars_rows; i++) {
+    AlignmentStars_Azimuth = 180+atan(sin((Siderial_Time_Local * 15 - AlignmentStars_Array[i][1]) * 2 * PI / 360) /(cos((Siderial_Time_Local * 15 - AlignmentStars_Array[i][1]) * 2 * PI / 360) * sin(Latitude * 2 * PI / 360) - tan(AlignmentStars_Array[i][2] * 2 * PI / 360) * cos(Latitude * 2 * PI / 360)))*360/(2*PI) ;
+//方位角起算点的原因，增加180度。
+    AlignmentStars_Altitude = asin(sin(Latitude * 2 * PI / 360) * sin(AlignmentStars_Array[i][2] * 2 * PI / 360) + cos(Latitude * 2 * PI / 360) * cos(AlignmentStars_Array[i][2] * 2 * PI / 360) * cos((Siderial_Time_Local * 15 - AlignmentStars_Array[i][1])*2*PI/360))*360/(2*PI);
 
-      for(int j=1;j<AlignmentStars_colums;j++){
-      Serial.print(AlignmentStars_Array[i][j]);
-      Serial.print("\t");      }
+    if (AlignmentStars_Altitude >= PI / 6) {
+      //地平高度大于30度时，才列出来星座、名字
+      AlignmentStars_Names(i);
+      Serial.print("\n");
+      Serial.print(i);
+      Serial.print("\t");
+      Serial.print(AlignmentStars_Name);
+      Serial.print("\t");
+      Serial.print(AlignmentStars_Azimuth); //校准星体的方位角
+      Serial.print("\t");
+      Serial.print(AlignmentStars_Altitude); //校准星体的高度角
+      Serial.print("\t");
+
+      for (int j = 1; j < AlignmentStars_colums; j++) {
+        Serial.print(AlignmentStars_Array[i][j]);
+        Serial.print("\t");
+      }
+    }
+    delay(50);
   }
-  }
-    while(1);
+  Alignment_Star_One=0;
+  Alignment_Star_Two=22;
+  Alignment_Star_Three=35;
+
+  
+
+   //  传感器获得的数值，直接作为原始数据录入
+      Matrix_Sensor_Goto[0][0]=Astro_HUD_RA;
+      Matrix_Sensor_Goto[1][0]=Astro_HUD_DEC;
+      Matrix_Sensor_Goto[2][0]=1;
+
+  // 应显示的坐标，对应星图RA/DEC
+  //  Matrix_Atlas_Goto[0][1] = 0;
+  //  Matrix_Atlas_Goto[1][1] = 0;
+  //  Matrix_Atlas_Goto[2][1] = 1;
+
+  //  /*三星校准-目标矩阵的数值
+  //    A_RA  B_RA  C_RA
+  //    A_Dec B_Dec C_Dec
+  //    1   1   1
+  //  */
+    Matrix_Atlas[0][0] = AlignmentStars_Array[Alignment_Star_One][2];
+    Matrix_Atlas[0][1] = AlignmentStars_Array[Alignment_Star_Two][2];
+    Matrix_Atlas[0][2] = AlignmentStars_Array[Alignment_Star_Three][2];
+    Matrix_Atlas[1][0] = AlignmentStars_Array[Alignment_Star_One][1];
+    Matrix_Atlas[1][1] = AlignmentStars_Array[Alignment_Star_Two][1];
+    Matrix_Atlas[1][2] = AlignmentStars_Array[Alignment_Star_Three][1];
+    Matrix_Atlas[2][0] = 1;
+    Matrix_Atlas[2][1] = 1;
+    Matrix_Atlas[2][2] = 1;
+  //
+  //  /*三星校准-传感器瞄准矩阵的数值
+  //    原始矩阵--》感应器计算后的原始坐标,Matrix_Sensor
+  //    a_RA  b_RA  c_RA
+  //    a_Dec b_Dec c_Dec
+  //    1   1   1
+  //  */
+    Matrix_Sensor[0][0] = 7.10; //Alignment_Star_One序号星体的实际赤经
+    Matrix_Sensor[0][1] = 182.28; //Alignment_Star_Two序号星体的实际赤经
+    Matrix_Sensor[0][2] = 170.93; //Alignment_Star_Three序号星体的实际赤经
+    Matrix_Sensor[1][0] = 34.10; //Alignment_Star_One序号星体的实际赤纬
+    Matrix_Sensor[1][1] = 19.60;//Alignment_Star_Two序号星体的实际赤纬
+    Matrix_Sensor[1][2] = 66.8;//Alignment_Star_Three序号星体的实际赤纬
+    Matrix_Sensor[2][0] = 1;
+    Matrix_Sensor[2][1] = 1;
+    Matrix_Sensor[2][2] = 1;
+
+//计算实际值
+  
+    MatrixD.Invert((float*)Matrix_Sensor, 3);  //计算逆矩阵
+    MatrixD.Print((float*)Matrix_Sensor, 3, 3, "Matrix_Sensor_inver");
+    MatrixD.Multiply((float*)Matrix_Atlas, (float*)Matrix_Sensor, 3, 3, 3, (float*)Matrix_T);
+    MatrixD.Print((float*)Matrix_T, 3, 3, "T");//获得转换矩阵
+    MatrixD.Multiply((float*)Matrix_T, (float*)Matrix_Sensor_Goto, 3, 3, 1, (float*)Matrix_Atlas_Goto);
+    MatrixD.Print((float*)Matrix_Atlas_Goto, 3, 1, "On_OLED");//获得最终显示的内容矩阵
+
+  Serial.println("JY901_Data");
+      MatrixD.Print((float*)Matrix_Sensor_Goto, 3, 1, "Sensor");//获得最终显示的内容矩阵
+
+  int Loop_Num=1;
+  Loop_Num++;
+  while (Loop_Num>20);
 
 }
 
