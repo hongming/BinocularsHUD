@@ -109,7 +109,7 @@ int Point_Star_One, Point_Star_Two, Point_Star_Three;
 //转换矩阵,自动计算出来
 float Matrix_T[3][3];
 //转换矩阵,使用计算数据，纠正系统偏移
-float Matrix_T_Offset[3][3] = {{1, 0, -5}, {0, 1, -5}, {0, 0, 1}};
+float Matrix_T_Offset[3][3] = {{1, 0, 0}, {0, 1, 0}, {0, 0, 1}};
 //屏幕显示矩阵
 float Matrix_Atlas_Goto[3][1];
 //传感器原始输出矩阵
@@ -204,10 +204,10 @@ float AlignmentStars_Array[AlignmentStars_rows][AlignmentStars_colums] = {
 void setup() {
   //启动图形库
   u8g2.begin();
-  delay(100);
+  delay(1000);
   //启动串口
   Serial.begin(9600);
-  delay(100);
+  delay(1000);
   Serial.println("Welcome to BianocularsHUD!");
   //启动姿态板串口
   Serial1.begin(9600);
@@ -216,8 +216,8 @@ void setup() {
   Latitude = 31.0456;
   Longitude = 121.3997;
   //观测者所在位置的磁偏角
-  Magnetic_Delination = 5.9;
-  // Magnetic_Delination=0;
+  //Magnetic_Delination = 5.9;
+   Magnetic_Delination=0;
   //启动RTC、设置时间
   // Initialize a new chip by turning off write protection and clearing the
   // clock halt flag. These methods needn't always be called. See the DS1302
@@ -250,12 +250,12 @@ void loop() {
   //校准星体计算
   //jy_yaw_m=63.5;
   //jy_pitch=40.8;
-  //  Serial.print("Azimuth");
-  //  Serial.println(jy_yaw);
-  //  Serial.print("         ");
-  //  Serial.print("Altitude");
-  //  Serial.print(jy_pitch);
-  //  Serial.println("         ");
+//    Serial.print("Azimuth");
+//    Serial.println(jy_yaw);
+//    Serial.print("         ");
+//    Serial.print("Altitude");
+//    Serial.print(jy_pitch);
+//    Serial.println("         ");
 
   //测试用方位角（弧度），获取和计算,假设为0
   Azimuth = jy_yaw_m * 2 * PI / 360;
@@ -311,9 +311,11 @@ void loop() {
   //获取两个电位器的校正值
   RA_AlignPin_Offset = analogRead(RA_AlignPin);
   DEC_AlignPin_Offset = analogRead(DEC_AlignPin);
-  RA_AlignPin_Offset_F = map(RA_AlignPin_Offset, 0, 1023, -512, 511) * 0.01;
-  DEC_AlignPin_Offset_F = map(DEC_AlignPin_Offset, 0, 1023, -512, 511) * 0.01;
+  RA_AlignPin_Offset_F = map(RA_AlignPin_Offset, 0, 1023, -80, 80) * 0.01;
+  DEC_AlignPin_Offset_F = map(DEC_AlignPin_Offset, 0, 1023, -312, 311) * 0.01;
 
+//RA_AlignPin_Offset_F=0;
+//DEC_AlignPin_Offset_F=0;
   //计算赤经
   Astro_HUD_RA = RA_AlignPin_Offset_F + Siderial_Time_Local - atan(sin(Azimuth) / ( cos(Azimuth) * sin(Latitude * (2 * PI / 360)) - tan(Altitude) * cos(Latitude * (2 * PI / 360)) )) * 180 / (PI * 15) ;
   //计算赤纬δ = 赤纬。天赤道以北为正，以南为负。
@@ -513,7 +515,7 @@ void loop() {
     u8g2.drawLine(13, 40, 10 - 10 * sin(Azimuth), 40 + 10 * cos(Azimuth));
     u8g2.setFont(u8g2_font_profont12_tf);
     u8g2.setCursor(30, 50);
-    u8g2.print(jy_yaw);
+    u8g2.print(jy_yaw_m);
 
     //打印高度角
     u8g2.drawCircle(69, 50, 20, U8G2_DRAW_UPPER_RIGHT);
