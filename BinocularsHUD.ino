@@ -60,7 +60,7 @@ U8G2_SSD1306_128X64_NONAME_1_4W_SW_SPI u8g2(U8G2_R0, /* clock=*/ 13, /* data=*/ 
 #include "Math.h"
 #include <stdio.h>
 #include <DS1302.h> //时钟库
-#include <MatrixMath.h> //矩阵预算库
+//#include <MatrixMath.h> //矩阵预算库
 
 //以下定义变量
 
@@ -91,29 +91,29 @@ int Mod_DEC_DD;
 int Mod_DEC_MM;
 int Mod_DEC_SS;
 //用电位器，做单星校准，RA、DEC人工校正值
-int RA_AlignPin = A0;
-int DEC_AlignPin = A1;
-int RA_AlignPin_Offset = 0;
-int DEC_AlignPin_Offset = 0;
-float RA_AlignPin_Offset_F = 0;
-float DEC_AlignPin_Offset_F = 0;
+//int RA_AlignPin = A0;
+//int DEC_AlignPin = A1;
+//int RA_AlignPin_Offset = 0;
+//int DEC_AlignPin_Offset = 0;
+//float RA_AlignPin_Offset_F = 0;
+//float DEC_AlignPin_Offset_F = 0;
 
-//目标矩阵--》星图的三颗星体的标准坐标，
-float Matrix_Atlas[3][3];
-//三颗校准星体的序号
-int Alignment_Star_One, Alignment_Star_Two, Alignment_Star_Three;
-//原始矩阵--》感应器对准的三颗星体后得到的原始坐标
-float Matrix_Sensor[3][3];
-//三颗校准星体的实际位置的序号，可能用不上
-int Point_Star_One, Point_Star_Two, Point_Star_Three;
-//转换矩阵,自动计算出来
-float Matrix_T[3][3];
-//转换矩阵,使用计算数据，纠正系统偏移
-float Matrix_T_Offset[3][3] = {{1, 0, 0}, {0, 1, 0}, {0, 0, 1}};
-//屏幕显示矩阵
-float Matrix_Atlas_Goto[3][1];
-//传感器原始输出矩阵
-float Matrix_Sensor_Goto[3][1];
+////目标矩阵--》星图的三颗星体的标准坐标，
+//float Matrix_Atlas[3][3];
+////三颗校准星体的序号
+//int Alignment_Star_One, Alignment_Star_Two, Alignment_Star_Three;
+////原始矩阵--》感应器对准的三颗星体后得到的原始坐标
+//float Matrix_Sensor[3][3];
+////三颗校准星体的实际位置的序号，可能用不上
+//int Point_Star_One, Point_Star_Two, Point_Star_Three;
+////转换矩阵,自动计算出来
+//float Matrix_T[3][3];
+////转换矩阵,使用计算数据，纠正系统偏移
+//float Matrix_T_Offset[3][3] = {{1, 0, 0}, {0, 1, 0}, {0, 0, 1}};
+////屏幕显示矩阵
+//float Matrix_Atlas_Goto[3][1];
+////传感器原始输出矩阵
+//float Matrix_Sensor_Goto[3][1];
 
 
 //儒略日和简化儒略日
@@ -149,57 +149,57 @@ DS1302 rtc(kCePin, kIoPin, kSclkPin);
 char inChar;
 String Stellarium = "";
 
-//望远镜指向在The Cambridge Star Atlas中的星图区域（Index to the star charts）
-int TCSA_Star_Chart;
-
-//Nexstarsite.com上的Star list星体表中的Alignment Stars
-void AlignmentStars_Print(const float [][3]);
-const int AlignmentStars_rows = 40;
-const int AlignmentStars_colums = 3;
-String  AlignmentStars_Name;
-float AlignmentStars_Altitude, AlignmentStars_Azimuth; //校准星体的实时地平高度角、方位角
-float AlignmentStars_Array[AlignmentStars_rows][AlignmentStars_colums] = {
-  {0, 2.10 , 29.10},
-  {1, 17.43 , 35.60},
-  {2, 297.70 , 8.90},
-  {3, 31.80 , 23.50},
-  {4, 79.18 , 46.00},
-  {5, 213.93 , 19.20},
-  {6, 96.00 , -52.70},
-  {7, 2.30 , 59.10},
-  {8, 14.18 , 60.70},
-  {9, 219.90 , -60.80},
-  {10, 210.95 , -60.40},
-  {11, 101.28 , -16.70},
-  {12, 114.83 , 5.20},
-  {13, 233.68 , 26.70},
-  {14, 186.65 , -63.10},
-  {15, 191.93 , -59.70},
-  {16, 292.68 , 28.00},
-  {17, 310.35 , 45.30},
-  {18, 24.43 , -57.20},
-  {19, 113.65 , 31.90},
-  {20, 116.33 , 28.00},
-  {21, 141.90 , -8.70},
-  {22, 177.28 , 14.60},
-  {23, 152.10 , 12.00},
-  {24, 279.23 , 38.80},
-  {25, 263.73 , 12.60},
-  {26, 88.80 , 7.40},
-  {27, 78.63 , -8.20},
-  {28, 306.40 , -56.70},
-  {29, 3.30 , 15.20},
-  {30, 345.95 , 28.10},
-  {31, 51.08 , 49.90},
-  {32, 344.43 , -29.60},
-  {33, 247.35 , -26.40},
-  {34, 68.98 , 16.50},
-  {35, 165.93 , 61.80},
-  {36, 200.98 , 54.90},
-  {37, 37.95 , 89.30},
-  {38, 137.00 , -43.40},
-  {39, 201.30 , -11.20},
-};
+////望远镜指向在The Cambridge Star Atlas中的星图区域（Index to the star charts）
+//int TCSA_Star_Chart;
+//
+////Nexstarsite.com上的Star list星体表中的Alignment Stars
+//void AlignmentStars_Print(const float [][3]);
+//const int AlignmentStars_rows = 40;
+//const int AlignmentStars_colums = 3;
+//String  AlignmentStars_Name;
+//float AlignmentStars_Altitude, AlignmentStars_Azimuth; //校准星体的实时地平高度角、方位角
+//float AlignmentStars_Array[AlignmentStars_rows][AlignmentStars_colums] = {
+//  {0, 2.10 , 29.10},
+//  {1, 17.43 , 35.60},
+//  {2, 297.70 , 8.90},
+//  {3, 31.80 , 23.50},
+//  {4, 79.18 , 46.00},
+//  {5, 213.93 , 19.20},
+//  {6, 96.00 , -52.70},
+//  {7, 2.30 , 59.10},
+//  {8, 14.18 , 60.70},
+//  {9, 219.90 , -60.80},
+//  {10, 210.95 , -60.40},
+//  {11, 101.28 , -16.70},
+//  {12, 114.83 , 5.20},
+//  {13, 233.68 , 26.70},
+//  {14, 186.65 , -63.10},
+//  {15, 191.93 , -59.70},
+//  {16, 292.68 , 28.00},
+//  {17, 310.35 , 45.30},
+//  {18, 24.43 , -57.20},
+//  {19, 113.65 , 31.90},
+//  {20, 116.33 , 28.00},
+//  {21, 141.90 , -8.70},
+//  {22, 177.28 , 14.60},
+//  {23, 152.10 , 12.00},
+//  {24, 279.23 , 38.80},
+//  {25, 263.73 , 12.60},
+//  {26, 88.80 , 7.40},
+//  {27, 78.63 , -8.20},
+//  {28, 306.40 , -56.70},
+//  {29, 3.30 , 15.20},
+//  {30, 345.95 , 28.10},
+//  {31, 51.08 , 49.90},
+//  {32, 344.43 , -29.60},
+//  {33, 247.35 , -26.40},
+//  {34, 68.98 , 16.50},
+//  {35, 165.93 , 61.80},
+//  {36, 200.98 , 54.90},
+//  {37, 37.95 , 89.30},
+//  {38, 137.00 , -43.40},
+//  {39, 201.30 , -11.20},
+//};
 
 void setup() {
   //启动图形库
@@ -308,18 +308,20 @@ void loop() {
   //        Serial.print("  ");
   //        Serial.println(Siderial_Time_Local, 6);
 
-  //获取两个电位器的校正值
-  RA_AlignPin_Offset = analogRead(RA_AlignPin);
-  DEC_AlignPin_Offset = analogRead(DEC_AlignPin);
-  RA_AlignPin_Offset_F = map(RA_AlignPin_Offset, 0, 1023, -80, 80) * 0.01;
-  DEC_AlignPin_Offset_F = map(DEC_AlignPin_Offset, 0, 1023, -312, 311) * 0.01;
+//  //获取两个电位器的校正值
+//  RA_AlignPin_Offset = analogRead(RA_AlignPin);
+//  DEC_AlignPin_Offset = analogRead(DEC_AlignPin);
+//  RA_AlignPin_Offset_F = map(RA_AlignPin_Offset, 0, 1023, -80, 80) * 0.01;
+//  DEC_AlignPin_Offset_F = map(DEC_AlignPin_Offset, 0, 1023, -312, 311) * 0.01;
 
 //RA_AlignPin_Offset_F=0;
 //DEC_AlignPin_Offset_F=0;
   //计算赤经
-  Astro_HUD_RA = RA_AlignPin_Offset_F + Siderial_Time_Local - atan(sin(Azimuth) / ( cos(Azimuth) * sin(Latitude * (2 * PI / 360)) - tan(Altitude) * cos(Latitude * (2 * PI / 360)) )) * 180 / (PI * 15) ;
+//  Astro_HUD_RA = RA_AlignPin_Offset_F + Siderial_Time_Local - atan(sin(Azimuth) / ( cos(Azimuth) * sin(Latitude * (2 * PI / 360)) - tan(Altitude) * cos(Latitude * (2 * PI / 360)) )) * 180 / (PI * 15) ;
+  Astro_HUD_RA =  Siderial_Time_Local - atan(sin(Azimuth) / ( cos(Azimuth) * sin(Latitude * (2 * PI / 360)) - tan(Altitude) * cos(Latitude * (2 * PI / 360)) )) * 180 / (PI * 15) ;
   //计算赤纬δ = 赤纬。天赤道以北为正，以南为负。
-  Astro_HUD_DEC = DEC_AlignPin_Offset_F + asin(sin(Latitude * 2 * PI / 360) * sin(Altitude) + cos(Latitude * (2 * PI / 360)) * cos(Altitude) * cos(Azimuth)) * 360 / (2 * PI);
+//  Astro_HUD_DEC = DEC_AlignPin_Offset_F + asin(sin(Latitude * 2 * PI / 360) * sin(Altitude) + cos(Latitude * (2 * PI / 360)) * cos(Altitude) * cos(Azimuth)) * 360 / (2 * PI);
+  Astro_HUD_DEC =  asin(sin(Latitude * 2 * PI / 360) * sin(Altitude) + cos(Latitude * (2 * PI / 360)) * cos(Altitude) * cos(Azimuth)) * 360 / (2 * PI);
   //Serial.print("The Binoculars is point at RA: ");
   //Serial.print(Astro_HUD_RA);
   //Serial.print(" RA in Degree ");
@@ -328,15 +330,15 @@ void loop() {
   //Serial.println(Astro_HUD_DEC);
   //偏移矩阵，在Setup中定义，默认使用E矩阵，应参照Matrix_T进行填写
   //  传感器获得的数值，直接作为原始数据录入
-  Matrix_Sensor_Goto[0][0] = Astro_HUD_RA * 15; //角度
-  Matrix_Sensor_Goto[1][0] = Astro_HUD_DEC;
-  Matrix_Sensor_Goto[2][0] = 1;
+//  Matrix_Sensor_Goto[0][0] = Astro_HUD_RA * 15; //角度
+//  Matrix_Sensor_Goto[1][0] = Astro_HUD_DEC;
+//  Matrix_Sensor_Goto[2][0] = 1;
 
-  MatrixD.Multiply((float*)Matrix_T_Offset, (float*)Matrix_Sensor_Goto, 3, 3, 1, (float*)Matrix_Atlas_Goto);
-
-  //经过仿射偏移后的值
-  Astro_HUD_RA = Matrix_Atlas_Goto[0][0] / 15;
-  Astro_HUD_DEC = Matrix_Atlas_Goto[0][1];
+//  MatrixD.Multiply((float*)Matrix_T_Offset, (float*)Matrix_Sensor_Goto, 3, 3, 1, (float*)Matrix_Atlas_Goto);
+//
+//  //经过仿射偏移后的值
+//  Astro_HUD_RA = Matrix_Atlas_Goto[0][0] / 15;
+//  Astro_HUD_DEC = Matrix_Atlas_Goto[0][1];
 
   //以下获取赤经、赤纬的独立显示值
   Mod_RA_HH = int(Astro_HUD_RA);
@@ -348,26 +350,26 @@ void loop() {
   Mod_DEC_MM = int(Mod_DEC_MM / 10) * 10; //在精度允许范围内，以20角分为基础分段显示
   Mod_DEC_SS = int((abs(Astro_HUD_DEC) - abs(Mod_DEC_DD) - Mod_DEC_MM / 60) * 60);
 
-  //在The Cambridge Star Atlas中的星图区域（Index to the star charts）中，望远镜指向的区域
-  if (Mod_DEC_DD >= 65) {
-    TCSA_Star_Chart = 1;
-  }
-  else if (Mod_DEC_DD >= 20 && Mod_DEC_DD < 65
-          ) {
-    TCSA_Star_Chart = ceil(Mod_RA_HH / 4) + 1;
-  }
-  else if (Mod_DEC_DD >= -20 && Mod_DEC_DD < 20
-          ) {
-    TCSA_Star_Chart = ceil(Mod_RA_HH / 4) + 7;
-  }
-  else if (Mod_DEC_DD >= -65 && Mod_DEC_DD < -20
-          ) {
-    TCSA_Star_Chart = ceil(Mod_RA_HH / 4) + 13;
-  }
-  else
-  {
-    TCSA_Star_Chart = 20;
-  }
+//  //在The Cambridge Star Atlas中的星图区域（Index to the star charts）中，望远镜指向的区域
+//  if (Mod_DEC_DD >= 65) {
+//    TCSA_Star_Chart = 1;
+//  }
+//  else if (Mod_DEC_DD >= 20 && Mod_DEC_DD < 65
+//          ) {
+//    TCSA_Star_Chart = ceil(Mod_RA_HH / 4) + 1;
+//  }
+//  else if (Mod_DEC_DD >= -20 && Mod_DEC_DD < 20
+//          ) {
+//    TCSA_Star_Chart = ceil(Mod_RA_HH / 4) + 7;
+//  }
+//  else if (Mod_DEC_DD >= -65 && Mod_DEC_DD < -20
+//          ) {
+//    TCSA_Star_Chart = ceil(Mod_RA_HH / 4) + 13;
+//  }
+//  else
+//  {
+//    TCSA_Star_Chart = 20;
+//  }
 
   /*串口输出方位角、高度角等信息
     Serial.print("RA:");
@@ -485,14 +487,14 @@ void loop() {
     u8g2.setCursor(50, 15);
     u8g2.print(F("m"));
 
-    //显示RA手动调整值
-    u8g2.setCursor(30, 30);
-    u8g2.setFont(u8g2_font_profont10_tf);
-    u8g2.print(RA_AlignPin_Offset_F);
-    //显示DEC手动调整值
-    u8g2.setCursor(99, 30);
-    u8g2.setFont(u8g2_font_profont10_tf);
-    u8g2.print(DEC_AlignPin_Offset_F);
+//    //显示RA手动调整值
+//    u8g2.setCursor(30, 30);
+//    u8g2.setFont(u8g2_font_profont10_tf);
+//    u8g2.print(RA_AlignPin_Offset_F);
+//    //显示DEC手动调整值
+//    u8g2.setCursor(99, 30);
+//    u8g2.setFont(u8g2_font_profont10_tf);
+//    u8g2.print(DEC_AlignPin_Offset_F);
 
     //打印DEC赤经
     u8g2.setCursor(69, 15);
@@ -540,7 +542,7 @@ void loop() {
     u8g2.print(t.sec);
     u8g2.setCursor(110, 63);
     u8g2.setFont(u8g2_font_helvB10_tf);
-    u8g2.print(TCSA_Star_Chart);
+//    u8g2.print(TCSA_Star_Chart);
   } while ( u8g2.nextPage() );
 
   delay(10);
@@ -653,70 +655,70 @@ void loop() {
   //    MatrixD.Print((float*)Matrix_Atlas_Goto, 3, 1, "On_OLED");//获得最终显示的内容矩阵
 }
 
-//打印数组中的RA、Dec信息
-void AlignmentStars_Print(const float a[][AlignmentStars_colums]) {
-  for (int i = 0; i < AlignmentStars_rows; i++) {
+////打印数组中的RA、Dec信息
+//void AlignmentStars_Print(const float a[][AlignmentStars_colums]) {
+//  for (int i = 0; i < AlignmentStars_rows; i++) {
+//
+//    Serial.println();
+//    AlignmentStars_Names(i);
+//
+//    Serial.print(AlignmentStars_Name);
+//    Serial.print("\t");
+//    for (int j = 1; j < AlignmentStars_colums; j++) {
+//      Serial.print(a[i][j]);
+//      Serial.print("\t");
+//    }
+//
+//  }
+//}
 
-    Serial.println();
-    AlignmentStars_Names(i);
-
-    Serial.print(AlignmentStars_Name);
-    Serial.print("\t");
-    for (int j = 1; j < AlignmentStars_colums; j++) {
-      Serial.print(a[i][j]);
-      Serial.print("\t");
-    }
-
-  }
-}
-
-//Nexstarsite.com上的Star list星体表中的Alignment Stars的星座、名字
-void AlignmentStars_Names(int x) {
-  switch (x) {
-    case 0 : AlignmentStars_Name = "And Alpheratz"; break;
-    case 1 : AlignmentStars_Name = "And Mirach"; break;
-    case 2 : AlignmentStars_Name = "Aql_Altair"; break;
-    case 3 : AlignmentStars_Name = "Ari_Hamal"; break;
-    case 4 : AlignmentStars_Name = "Aur_Capella"; break;
-    case 5 : AlignmentStars_Name = "Boo_Arcturus"; break;
-    case 6 : AlignmentStars_Name = "Car_Canopus"; break;
-    case 7 : AlignmentStars_Name = "Cas_Caph"; break;
-    case 8 : AlignmentStars_Name = "Cas_Navi"; break;
-    case 9 : AlignmentStars_Name = "Cen_Alpha Centauri"; break;
-    case 10: AlignmentStars_Name = "Cen_Hadar"; break;
-    case 11: AlignmentStars_Name = "Cma_Sirius"; break;
-    case 12: AlignmentStars_Name = "Cmi_Procyon"; break;
-    case 13: AlignmentStars_Name = "CrB_Alphecca"; break;
-    case 14: AlignmentStars_Name = "Cru_Acrux"; break;
-    case 15: AlignmentStars_Name = "Cru_Mimosa"; break;
-    case 16: AlignmentStars_Name = "Cyg_Albireo"; break;
-    case 17: AlignmentStars_Name = "Cyg_Deneb"; break;
-    case 18: AlignmentStars_Name = "Eri_Achernar"; break;
-    case 19: AlignmentStars_Name = "Gem_Castor"; break;
-    case 20: AlignmentStars_Name = "Gem_Pollux"; break;
-    case 21: AlignmentStars_Name = "Hya_Alphard"; break;
-    case 22: AlignmentStars_Name = "Leo_Denebola"; break;
-    case 23: AlignmentStars_Name = "Leo_Regulus"; break;
-    case 24: AlignmentStars_Name = "Lyr_Vega"; break;
-    case 25: AlignmentStars_Name = "Oph_Rasalhague"; break;
-    case 26: AlignmentStars_Name = "Ori_Betelgeuse"; break;
-    case 27: AlignmentStars_Name = "Ori_Rigel"; break;
-    case 28: AlignmentStars_Name = "Pav_Peacock"; break;
-    case 29: AlignmentStars_Name = "Peg_Algenib"; break;
-    case 30: AlignmentStars_Name = "Peg_Scheat"; break;
-    case 31: AlignmentStars_Name = "Per_Mirfak"; break;
-    case 32: AlignmentStars_Name = "PsA_Fomalhaut"; break;
-    case 33: AlignmentStars_Name = "Sco_Antares"; break;
-    case 34: AlignmentStars_Name = "Tau_Aldebaran"; break;
-    case 35: AlignmentStars_Name = "Uma_Dubhe"; break;
-    case 36: AlignmentStars_Name = "Uma_Mizar"; break;
-    case 37: AlignmentStars_Name = "Umi_Polaris"; break;
-    case 38: AlignmentStars_Name = "Vel_Suhail"; break;
-    case 39: AlignmentStars_Name = "Vir_Spica"; break;
-    default:
-      break;
-  }
-}
+////Nexstarsite.com上的Star list星体表中的Alignment Stars的星座、名字
+//void AlignmentStars_Names(int x) {
+//  switch (x) {
+//    case 0 : AlignmentStars_Name = "And Alpheratz"; break;
+//    case 1 : AlignmentStars_Name = "And Mirach"; break;
+//    case 2 : AlignmentStars_Name = "Aql_Altair"; break;
+//    case 3 : AlignmentStars_Name = "Ari_Hamal"; break;
+//    case 4 : AlignmentStars_Name = "Aur_Capella"; break;
+//    case 5 : AlignmentStars_Name = "Boo_Arcturus"; break;
+//    case 6 : AlignmentStars_Name = "Car_Canopus"; break;
+//    case 7 : AlignmentStars_Name = "Cas_Caph"; break;
+//    case 8 : AlignmentStars_Name = "Cas_Navi"; break;
+//    case 9 : AlignmentStars_Name = "Cen_Alpha Centauri"; break;
+//    case 10: AlignmentStars_Name = "Cen_Hadar"; break;
+//    case 11: AlignmentStars_Name = "Cma_Sirius"; break;
+//    case 12: AlignmentStars_Name = "Cmi_Procyon"; break;
+//    case 13: AlignmentStars_Name = "CrB_Alphecca"; break;
+//    case 14: AlignmentStars_Name = "Cru_Acrux"; break;
+//    case 15: AlignmentStars_Name = "Cru_Mimosa"; break;
+//    case 16: AlignmentStars_Name = "Cyg_Albireo"; break;
+//    case 17: AlignmentStars_Name = "Cyg_Deneb"; break;
+//    case 18: AlignmentStars_Name = "Eri_Achernar"; break;
+//    case 19: AlignmentStars_Name = "Gem_Castor"; break;
+//    case 20: AlignmentStars_Name = "Gem_Pollux"; break;
+//    case 21: AlignmentStars_Name = "Hya_Alphard"; break;
+//    case 22: AlignmentStars_Name = "Leo_Denebola"; break;
+//    case 23: AlignmentStars_Name = "Leo_Regulus"; break;
+//    case 24: AlignmentStars_Name = "Lyr_Vega"; break;
+//    case 25: AlignmentStars_Name = "Oph_Rasalhague"; break;
+//    case 26: AlignmentStars_Name = "Ori_Betelgeuse"; break;
+//    case 27: AlignmentStars_Name = "Ori_Rigel"; break;
+//    case 28: AlignmentStars_Name = "Pav_Peacock"; break;
+//    case 29: AlignmentStars_Name = "Peg_Algenib"; break;
+//    case 30: AlignmentStars_Name = "Peg_Scheat"; break;
+//    case 31: AlignmentStars_Name = "Per_Mirfak"; break;
+//    case 32: AlignmentStars_Name = "PsA_Fomalhaut"; break;
+//    case 33: AlignmentStars_Name = "Sco_Antares"; break;
+//    case 34: AlignmentStars_Name = "Tau_Aldebaran"; break;
+//    case 35: AlignmentStars_Name = "Uma_Dubhe"; break;
+//    case 36: AlignmentStars_Name = "Uma_Mizar"; break;
+//    case 37: AlignmentStars_Name = "Umi_Polaris"; break;
+//    case 38: AlignmentStars_Name = "Vel_Suhail"; break;
+//    case 39: AlignmentStars_Name = "Vir_Spica"; break;
+//    default:
+//      break;
+//  }
+//}
 
 void serialEvent1() {
 
